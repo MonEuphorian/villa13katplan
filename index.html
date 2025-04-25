@@ -42,6 +42,7 @@
             margin: 0 auto;
             overflow: hidden;
             touch-action: manipulation;
+            transform-origin: center center;
         }
         
         .floor-image {
@@ -51,6 +52,7 @@
             border: 2px solid #444;
             border-radius: 8px;
             transition: transform 0.3s ease;
+            pointer-events: none; /* Görsel üzerinde tıklama alanlarını engelleme */
         }
         
         /* Kat Seçim Butonları */
@@ -244,6 +246,15 @@
         .pulse {
             animation: pulse 1.5s infinite;
         }
+        
+        /* Zoom Container */
+        .zoom-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: auto;
+            transform-origin: 0 0;
+        }
     </style>
 </head>
 <body>
@@ -257,24 +268,23 @@
         
         <div class="floor-view">
             <!-- 1. Kat Görüntüsü (Varsayılan) -->
-            <img src="villa_1kat.jpg" alt="1. Kat" class="floor-image" id="floor1" style="display: block;">
-            
-            <!-- 2. Kat Görüntüsü (Başlangıçta Gizli) -->
-            <img src="villa_2kat.jpg" alt="2. Kat" class="floor-image" id="floor2" style="display: none;">
-            
-            <!-- 1. Kat Odaları -->
-            <div class="room" data-room="mutfak" data-floor="1" style="top: 28%; left: 11%; width: 30%; height: 12%;" title="Mutfak"></div>
-            <div class="room" data-room="salon" data-floor="1" style="top: 41%; left: 15%; width: 37%; height: 16%;" title="Salon"></div>
-            <div class="room" data-room="calisma" data-floor="1" style="top: 45%; left: 52%; width: 15%; height: 12%;" title="Çalışma Odası"></div>
-            <div class="room" data-room="calisma" data-floor="1" style="top: 45%; left: 52%; width: 15%; height: 12%;" title="Çalışma Odası"></div>
-            <div class="room" data-room="yemek" data-floor="1" style="top: 65%; left: 67%; width: 15%; height: 11%;" title="Hamdi'nin Odası"></div>
-            <div class="room" data-room="nalan" data-floor="1" style="top: 31%; right: 18%; width: 17%; height: 13%;" title="Nalan'ın Odası"></div>
-            
-            <!-- 2. Kat Odaları -->
-            <div class="room" data-room="elif" data-floor="2" style="top: 7%; left: 25%; width: 20%; height: 12%;" title="Elif'in Odası"></div>
-            <div class="room" data-room="asli" data-floor="2" style="top: 33%; left: 25%; width: 20%; height: 10%;" title="Aslı'nın Odası"></div>
-            <div class="room" data-room="sercan" data-floor="2" style="top: 24%; right: 15%; width: 18%; height: 14%;" title="Sercan'ın Odası"></div>
-            <div class="room" data-room="fikret" data-floor="2" style="bottom: 12%; left: 25%; width: 21%; height: 16%;" title="Fikret'in Odası"></div>
+            <div class="zoom-container" id="zoomContainer">
+                <img src="villa_1kat.jpg" alt="1. Kat" class="floor-image" id="floor1" style="display: block;">
+                <img src="villa_2kat.jpg" alt="2. Kat" class="floor-image" id="floor2" style="display: none;">
+                
+                <!-- 1. Kat Odaları -->
+                <div class="room" data-room="mutfak" data-floor="1" style="top: 28%; left: 11%; width: 30%; height: 12%;" title="Mutfak"></div>
+                <div class="room" data-room="salon" data-floor="1" style="top: 41%; left: 15%; width: 37%; height: 16%;" title="Salon"></div>
+                <div class="room" data-room="calisma" data-floor="1" style="top: 45%; left: 52%; width: 15%; height: 12%;" title="Çalışma Odası"></div>
+                <div class="room" data-room="yemek" data-floor="1" style="top: 65%; left: 67%; width: 15%; height: 11%;" title="Yemek Odası"></div>
+                <div class="room" data-room="nalan" data-floor="1" style="top: 31%; right: 18%; width: 17%; height: 13%;" title="Nalan'ın Odası"></div>
+                
+                <!-- 2. Kat Odaları -->
+                <div class="room" data-room="elif" data-floor="2" style="top: 7%; left: 25%; width: 20%; height: 12%;" title="Elif'in Odası"></div>
+                <div class="room" data-room="asli" data-floor="2" style="top: 33%; left: 25%; width: 20%; height: 10%;" title="Aslı'nın Odası"></div>
+                <div class="room" data-room="sercan" data-floor="2" style="top: 24%; right: 15%; width: 18%; height: 14%;" title="Sercan'ın Odası"></div>
+                <div class="room" data-room="fikret" data-floor="2" style="bottom: 12%; left: 25%; width: 21%; height: 16%;" title="Fikret'in Odası"></div>
+            </div>
             
             <!-- Zoom Kontrolleri -->
             <div class="zoom-controls">
@@ -317,7 +327,7 @@
         const zoomOutBtn = document.getElementById('zoomOut');
         const zoomResetBtn = document.getElementById('zoomReset');
         const floorView = document.querySelector('.floor-view');
-        const floorImages = document.querySelectorAll('.floor-image');
+        const zoomContainer = document.getElementById('zoomContainer');
         let currentScale = 1;
         let currentTranslateX = 0;
         let currentTranslateY = 0;
@@ -560,8 +570,7 @@
         
         // Zoom işlevleri
         function updateTransform() {
-            const activeFloorImage = currentFloor === 1 ? floors[1] : floors[2];
-            activeFloorImage.style.transform = `scale(${currentScale}) translate(${currentTranslateX}px, ${currentTranslateY}px)`;
+            zoomContainer.style.transform = `scale(${currentScale}) translate(${currentTranslateX}px, ${currentTranslateY}px)`;
         }
         
         function zoomIn() {
@@ -594,6 +603,7 @@
                     startX = e.clientX;
                     startY = e.clientY;
                 } else if (e.type === "touchstart") {
+                    e.preventDefault();
                     startX = e.touches[0].clientX;
                     startY = e.touches[0].clientY;
                 }
@@ -607,14 +617,15 @@
         
         function drag(e) {
             if (!isDragging) return;
-            e.preventDefault();
             
             let clientX, clientY;
             
             if (e.type === "mousemove") {
+                e.preventDefault();
                 clientX = e.clientX;
                 clientY = e.clientY;
             } else if (e.type === "touchmove") {
+                e.preventDefault();
                 clientX = e.touches[0].clientX;
                 clientY = e.touches[0].clientY;
             }
@@ -633,14 +644,24 @@
             floorView.style.cursor = 'default';
         }
         
+        // Pinch-to-zoom
+        zoomContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                initialPinchDistance = 0;
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', handlePinch, { passive: false });
+        document.addEventListener('touchend', handlePinchEnd);
+        
         // Pinch-to-zoom fonksiyonu (mobil)
         let initialPinchDistance = 0;
         let initialScale = 1;
         
         function handlePinch(e) {
+            if (!e.touches || e.touches.length !== 2) return;
             e.preventDefault();
-            
-            if (e.touches.length !== 2) return;
             
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
@@ -657,10 +678,13 @@
             }
             
             const scaleFactor = distance / initialPinchDistance;
-            currentScale = initialScale * scaleFactor;
+            let newScale = initialScale * scaleFactor;
             
             // Ölçeği sınırla
-            currentScale = Math.min(Math.max(0.5, currentScale), 3);
+            newScale = Math.min(Math.max(0.5, newScale), 3);
+            
+            // Ölçek değişimini yumuşat
+            currentScale = newScale;
             
             updateTransform();
         }
@@ -711,26 +735,15 @@
         zoomResetBtn.addEventListener('click', resetZoom);
         
         // Sürükleme olayları
-        floorView.addEventListener('mousedown', startDrag);
-        floorView.addEventListener('mousemove', drag);
-        floorView.addEventListener('mouseup', endDrag);
-        floorView.addEventListener('mouseleave', endDrag);
+        zoomContainer.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('mouseleave', endDrag);
         
         // Mobil dokunma olayları
-        floorView.addEventListener('touchstart', startDrag);
-        floorView.addEventListener('touchmove', drag);
-        floorView.addEventListener('touchend', endDrag);
-        
-        // Pinch-to-zoom
-        floorView.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                initialPinchDistance = 0;
-            }
-        }, { passive: false });
-        
-        floorView.addEventListener('touchmove', handlePinch, { passive: false });
-        floorView.addEventListener('touchend', handlePinchEnd);
+        zoomContainer.addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('touchend', endDrag);
         
         // Varsayılan olarak 1. katı göster
         switchFloor(1);
