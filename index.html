@@ -88,8 +88,8 @@
         /* Hotspot Alanları (Odalar) */
         .room {
             position: absolute;
-            background-color: rgba(255, 77, 77, 0.2);
-            border: 2px solid rgba(255, 77, 77, 0.3);
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
             cursor: pointer;
             transition: all 0.3s ease;
             border-radius: 4px;
@@ -97,8 +97,8 @@
         }
         
         .room:hover {
-            background-color: rgba(255, 77, 77, 0.4);
-            border-color: rgba(255, 77, 77, 0.6);
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
         }
         
         /* Arama Modal */
@@ -140,6 +140,24 @@
         .search-text {
             font-size: 1.5rem;
             margin-bottom: 10px;
+        }
+        
+        .start-search-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .start-search-btn:hover {
+            background-color: #ff3333;
+            transform: scale(1.05);
         }
         
         /* İpuçları Bölümü */
@@ -255,6 +273,74 @@
             height: auto;
             transform-origin: center center;
         }
+        
+        /* İpucu Bilgi Modal */
+        .clue-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .clue-modal-content {
+            background-color: #222;
+            max-width: 80%;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 25px rgba(255, 77, 77, 0.4);
+            text-align: center;
+        }
+        
+        .clue-title {
+            font-size: 2rem;
+            color: #ff4d4d;
+            margin-bottom: 15px;
+        }
+        
+        .clue-description {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+        
+        .examine-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .examine-btn:hover {
+            background-color: #ff3333;
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 768px) {
+            .clue-modal-content {
+                max-width: 90%;
+                padding: 20px;
+            }
+            
+            .clue-title {
+                font-size: 1.5rem;
+            }
+            
+            .clue-description {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -300,13 +386,29 @@
     <div class="search-modal" id="searchModal">
         <div class="modal-content">
             <h2 class="room-name" id="currentRoom">Oda Adı</h2>
-            <p class="search-text">Oda aranıyor...</p>
-            <div class="timer" id="searchTimer">00</div>
+            <div id="searchConfirm">
+                <p class="search-text">Bu odada detaylı arama başlat...</p>
+                <p>Süre: <span id="searchTime">00</span> saniye</p>
+                <button class="start-search-btn" id="startSearchBtn">Aramayı Başlat</button>
+            </div>
+            <div id="searchProgress" style="display: none;">
+                <p class="search-text">Oda aranıyor...</p>
+                <div class="timer" id="searchTimer">00</div>
+            </div>
             
             <!-- İpucu Bölümü (Arama tamamlandığında gösterilecek) -->
             <div class="clues-container" id="cluesContainer">
                 <!-- İpuçları dinamik olarak eklenir -->
             </div>
+        </div>
+    </div>
+    
+    <!-- İpucu Bilgi Modal -->
+    <div class="clue-modal" id="clueModal">
+        <div class="clue-modal-content">
+            <h2 class="clue-title" id="clueTitle">İpucu Başlığı</h2>
+            <p class="clue-description" id="clueDescription">İpucu hakkında detaylı bilgi buraya gelecek...</p>
+            <button class="examine-btn" id="examineBtn">İNCELE</button>
         </div>
     </div>
     
@@ -355,36 +457,106 @@
         // İpucu tanımlamaları (oda-ipucu eşleşmeleri)
         const roomClues = {
             'salon': [
-                { name: 'Kanepe', image: 'https://placehold.co/150x150/333/white?text=Kanepe', link: 'minigame1.html' },
-                { name: 'Televizyon', image: 'https://placehold.co/150x150/333/white?text=TV', link: 'minigame2.html' }
+                { 
+                    name: 'Kanepe', 
+                    image: 'https://placehold.co/150x150/333/white?text=Kanepe', 
+                    link: 'minigame1.html',
+                    description: 'Salondaki kanepenin yastıklarının altında bazı eşyalar bulundu. Kanepe üzerindeki kan izleri ve diğer lekelerin detaylı incelemesi gerekiyor. Kanepede bulunan uzun sarı saçlar kime ait olabilir?'
+                },
+                { 
+                    name: 'Televizyon', 
+                    image: 'https://placehold.co/150x150/333/white?text=TV', 
+                    link: 'minigame2.html',
+                    description: 'Televizyonun üzerinde parmak izleri tespit edildi. Ayrıca televizyondaki güvenlik kamerası kayıtları cinayetin işlendiği gece hakkında önemli bilgiler içeriyor olabilir. Kayıtları incelemek için şifre gerekiyor.'
+                }
             ],
             'mutfak': [
-                { name: 'Buzdolabı', image: 'https://placehold.co/150x150/333/white?text=Buzdolabı', link: 'minigame3.html' },
-                { name: 'Bıçak Çekmecesi', image: 'https://placehold.co/150x150/333/white?text=Bıçak', link: 'minigame4.html' }
+                { 
+                    name: 'Buzdolabı', 
+                    image: 'https://placehold.co/150x150/333/white?text=Buzdolabı', 
+                    link: 'minigame3.html',
+                    description: 'Buzdolabında yarım kalmış bir şişe şarap ve iki kadeh bulundu. Şişenin üzerinde parmak izleri var. Buzdolabının içinde ayrıca şüpheli bir ilaç şişesi tespit edildi. İncelenmesi gerekiyor.'
+                },
+                { 
+                    name: 'Bıçak Çekmecesi', 
+                    image: 'https://placehold.co/150x150/333/white?text=Bıçak', 
+                    link: 'minigame4.html',
+                    description: 'Mutfak çekmecesindeki bıçak setinden bir adet ekmek bıçağı eksik. Diğer bıçakların üzerinde kan izleri kontrolü yapılmalı. Çekmecenin kulpunda birden fazla kişiye ait parmak izleri tespit edildi.'
+                }
             ],
             'calisma': [
-                { name: 'Kasa', image: 'https://placehold.co/150x150/333/white?text=Kasa', link: 'kasa.html' },
-                { name: 'Bilgisayar', image: 'https://placehold.co/150x150/333/white?text=PC', link: 'minigame5.html' }
+                { 
+                    name: 'Kasa', 
+                    image: 'https://placehold.co/150x150/333/white?text=Kasa', 
+                    link: 'kasa.html',
+                    description: 'Çalışma odasındaki kasa, Fikret Bey\'e ait. İçinde önemli belgeler ve değerli eşyalar olduğu biliniyor. Kasa şifresini bulmak için odadaki ipuçlarını incelemen gerekiyor. Kasanın üzerinde parmak izleri bulundu.'
+                },
+                { 
+                    name: 'Bilgisayar', 
+                    image: 'https://placehold.co/150x150/333/white?text=PC', 
+                    link: 'minigame5.html',
+                    description: 'Bilgisayarda Fikret Bey\'in son dönemde yaptığı araştırmalar ve yazışmalar bulunuyor. E-postalarında şüpheli yazışmalar dikkat çekiyor. Bilgisayar şifreli, ancak masadaki notlar şifreyi çözmek için ipuçları içeriyor.'
+                }
             ],
             'yemek': [
-                { name: 'Çekmece', image: 'https://placehold.co/150x150/333/white?text=Çekmece', link: 'minigame6.html' }
+                { 
+                    name: 'Çekmece', 
+                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
+                    link: 'minigame6.html',
+                    description: 'Yemek odasındaki çekmecede bir miras belgesi bulundu. Belge üzerinde yapılan değişiklikler dikkat çekici. Çekmecenin arka kısmında gizlenmiş bir not bulundu. Not, ailenin bir sırrını ortaya çıkarabilir.'
+                }
             ],
             'nalan': [
-                { name: 'Dolap', image: 'https://placehold.co/150x150/333/white?text=Dolap', link: 'minigame7.html' },
-                { name: 'Yatağın Altı', image: 'https://placehold.co/150x150/333/white?text=Yatak', link: 'minigame8.html' }
+                { 
+                    name: 'Dolap', 
+                    image: 'https://placehold.co/150x150/333/white?text=Dolap', 
+                    link: 'minigame7.html',
+                    description: 'Nalan\'ın dolabında yabancı bir erkek parfümü ve bazı şüpheli belgeler bulundu. Dolabın arka kısmında gizlenmiş bir günlük var. Günlükte önemli ipuçları olabilir.'
+                },
+                { 
+                    name: 'Yatağın Altı', 
+                    image: 'https://placehold.co/150x150/333/white?text=Yatak', 
+                    link: 'minigame8.html',
+                    description: 'Yatağın altında gizlenmiş bir çanta içinde yüklü miktarda para bulundu. Paranın kaynağı şüpheli. Ayrıca bir silah kutusu da tespit edildi, ancak içi boştu.'
+                }
             ],
             'elif': [
-                { name: 'Makyaj Masası', image: 'https://placehold.co/150x150/333/white?text=Makyaj', link: 'minigame9.html' }
+                { 
+                    name: 'Makyaj Masası', 
+                    image: 'https://placehold.co/150x150/333/white?text=Makyaj', 
+                    link: 'minigame9.html',
+                    description: 'Elif\'in makyaj masasında birkaç fotoğraf ve bir mektup bulundu. Fotoğraflarda ailede olmayan bir kişi görülüyor. Makyaj malzemelerinin arasında gizlenmiş bir USB bellek dikkat çekiyor.'
+                }
             ],
             'asli': [
-                { name: 'Kitaplık', image: 'https://placehold.co/150x150/333/white?text=Kitaplık', link: 'minigame10.html' },
-                { name: 'Çekmece', image: 'https://placehold.co/150x150/333/white?text=Çekmece', link: 'minigame11.html' }
+                { 
+                    name: 'Kitaplık', 
+                    image: 'https://placehold.co/150x150/333/white?text=Kitaplık', 
+                    link: 'minigame10.html',
+                    description: 'Aslı\'nın kitaplığında zehirler ve toksikoloji hakkında birçok kitap bulundu. Kitapların bazı sayfaları işaretlenmiş durumda. "Tespit Edilemeyen Zehirler" konulu kitaptaki notlar özellikle dikkat çekiyor.'
+                },
+                { 
+                    name: 'Çekmece', 
+                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
+                    link: 'minigame11.html',
+                    description: 'Aslı\'nın çekmecesinde tıp fakültesinden arkadaşlarıyla çekilmiş fotoğraflar ve bazı ilaç prospektüsleri bulundu. Ayrıca laboratuvar erişimi için bir kart ve şifreli notlar dikkat çekiyor.'
+                }
             ],
             'sercan': [
-                { name: 'Spor Çantası', image: 'https://placehold.co/150x150/333/white?text=Çanta', link: 'minigame12.html' }
+                { 
+                    name: 'Spor Çantası', 
+                    image: 'https://placehold.co/150x150/333/white?text=Çanta', 
+                    link: 'minigame12.html',
+                    description: 'Sercan\'ın spor çantasında normalde spor salonunda kullanılmayacak bazı eşyalar tespit edildi. Çantanın gizli bölmesinde borç senetleri ve bir tehdit mektubu bulundu. Ayrıca ekmek bıçağına benzeyen bir bıçak da dikkat çekiyor.'
+                }
             ],
             'fikret': [
-                { name: 'Gizli Bölme', image: 'https://placehold.co/150x150/333/white?text=Gizli', link: 'minigame13.html' }
+                { 
+                    name: 'Gizli Bölme', 
+                    image: 'https://placehold.co/150x150/333/white?text=Gizli', 
+                    link: 'minigame13.html',
+                    description: 'Fikret\'in odasında duvarın arkasında bir gizli bölme keşfedildi. Bölmede aile üyelerine ait özel bilgiler, şantaj belgeleri ve büyük miktarda nakit para bulunuyor. Belgelerin bazıları üzerinde kan lekeleri var.'
+                }
             ]
         };
         
@@ -432,6 +604,11 @@
                     if (remainingTime > 0) {
                         const roomFloor = document.querySelector(`.room[data-room="${roomId}"]`).dataset.floor;
                         switchFloor(roomFloor);
+                        
+                        // Arama ekranını değil, ilerleme ekranını göster
+                        document.getElementById('searchConfirm').style.display = 'none';
+                        document.getElementById('searchProgress').style.display = 'block';
+                        
                         startSearch(roomId, remainingTime);
                     } else {
                         // Süre bitmişse tamamlananlar listesine ekle
@@ -473,18 +650,37 @@
             resetZoom();
         }
         
-        // Arama fonksiyonu
-        function startSearch(roomId, remainingTime = null) {
-            const roomName = document.querySelector(`.room[data-room="${roomId}"]`).title;
-            currentRoomElement.textContent = roomName;
+        // Arama fonksiyonu (Ön Hazırlık)
+        function prepareSearch(roomId) {
+            const roomElement = document.querySelector(`.room[data-room="${roomId}"]`);
+            const roomName = roomElement.title;
+            const searchTime = roomSearchTimes[roomId] || 30;
             
-            // İpuçları bölümünü gizle, arama zamanını göster
+            // Oda adını ve süreyi güncelle
+            currentRoomElement.textContent = roomName;
+            document.getElementById('searchTime').textContent = searchTime;
+            
+            // İpuçları bölümünü gizle
             cluesContainer.style.display = 'none';
-            searchTimer.parentElement.querySelector('.search-text').textContent = 'Oda aranıyor...';
-            searchTimer.style.display = 'block';
+            
+            // Arama onay ekranını göster, ilerleme ekranını gizle
+            document.getElementById('searchConfirm').style.display = 'block';
+            document.getElementById('searchProgress').style.display = 'none';
             
             // Modalı göster
             searchModal.style.display = 'flex';
+            
+            // Aramayı başlat butonuna tıklama olayı ekle
+            document.getElementById('startSearchBtn').onclick = function() {
+                startSearch(roomId);
+            };
+        }
+        
+        // Arama fonksiyonu (Başlatma)
+        function startSearch(roomId, remainingTime = null) {
+            // Arama onay ekranını gizle, ilerleme ekranını göster
+            document.getElementById('searchConfirm').style.display = 'none';
+            document.getElementById('searchProgress').style.display = 'block';
             
             // Önceki timer'ı temizle
             if (searchInterval) clearInterval(searchInterval);
@@ -501,6 +697,7 @@
             }
             
             // Timer'ı ayarla
+            const searchTimer = document.getElementById('searchTimer');
             searchTimer.textContent = timeLeft;
             searchTimer.classList.add('pulse');
             
@@ -517,9 +714,9 @@
         
         // Arama tamamlandığında çağrılacak fonksiyon
         function searchCompleted(roomId) {
-            // Timer'ı gizle
-            searchTimer.style.display = 'none';
-            searchTimer.classList.remove('pulse');
+            // İlerleme ekranını gizle
+            document.getElementById('searchProgress').style.display = 'none';
+            document.getElementById('searchTimer').classList.remove('pulse');
             
             // Tamamlanan odayı kaydet
             if (!gameState.completedSearches.includes(roomId)) {
@@ -528,7 +725,7 @@
             }
             
             // İpuçlarını gösterme mesajını güncelle
-            searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
+            document.getElementById('searchProgress').querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
             
             // İpuçlarını oluştur
             createClues(roomId);
@@ -553,9 +750,9 @@
                     <div class="clue-name">${clue.name}</div>
                 `;
                 
-                // İpucu tıklandığında mini oyuna yönlendir
+                // İpucu tıklandığında artık doğrudan oyuna yönlendirmek yerine bilgi modalini göster
                 clueElement.addEventListener('click', () => {
-                    window.location.href = clue.link;
+                    showClueInfo(clue);
                 });
                 
                 cluesContainer.appendChild(clueElement);
@@ -567,6 +764,34 @@
                 noClue.textContent = 'Bu odada ilgili bir ipucu bulunamadı.';
                 cluesContainer.appendChild(noClue);
             }
+        }
+        
+        // İpucu bilgi modalini gösterme fonksiyonu
+        function showClueInfo(clue) {
+            // Modal elementlerini al
+            const clueModal = document.getElementById('clueModal');
+            const clueTitle = document.getElementById('clueTitle');
+            const clueDescription = document.getElementById('clueDescription');
+            const examineBtn = document.getElementById('examineBtn');
+            
+            // Modal içeriğini doldur
+            clueTitle.textContent = clue.name;
+            clueDescription.textContent = clue.description;
+            
+            // İNCELE butonuna tıklama olayı ekle
+            examineBtn.onclick = function() {
+                window.location.href = clue.link;
+            };
+            
+            // Modali göster
+            clueModal.style.display = 'flex';
+            
+            // Modal dışına tıklayınca kapatma
+            clueModal.addEventListener('click', function(e) {
+                if (e.target === clueModal) {
+                    clueModal.style.display = 'none';
+                }
+            });
         }
         
         // Zoom işlevleri
@@ -725,14 +950,15 @@
                 // Oda zaten tamamlandıysa ipuçlarını göster
                 if (gameState.completedSearches.includes(roomId)) {
                     currentRoomElement.textContent = this.title;
-                    searchTimer.style.display = 'none';
-                    searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
+                    document.getElementById('searchConfirm').style.display = 'none';
+                    document.getElementById('searchProgress').style.display = 'none';
+                    document.getElementById('searchProgress').querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
                     createClues(roomId);
                     cluesContainer.style.display = 'flex';
                     searchModal.style.display = 'flex';
                 } else {
-                    // Oda henüz tamamlanmadıysa aramayı başlat
-                    startSearch(roomId);
+                    // Oda henüz tamamlanmadıysa arama hazırlığını başlat
+                    prepareSearch(roomId);
                 }
             });
         });
@@ -753,14 +979,15 @@
                 // Oda zaten tamamlandıysa ipuçlarını göster
                 if (gameState.completedSearches.includes(roomId)) {
                     currentRoomElement.textContent = this.title;
-                    searchTimer.style.display = 'none';
-                    searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
+                    document.getElementById('searchConfirm').style.display = 'none';
+                    document.getElementById('searchProgress').style.display = 'none';
+                    document.getElementById('searchProgress').querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
                     createClues(roomId);
                     cluesContainer.style.display = 'flex';
                     searchModal.style.display = 'flex';
                 } else {
-                    // Oda henüz tamamlanmadıysa aramayı başlat
-                    startSearch(roomId);
+                    // Oda henüz tamamlanmadıysa arama hazırlığını başlat
+                    prepareSearch(roomId);
                 }
                 
                 e.preventDefault();
