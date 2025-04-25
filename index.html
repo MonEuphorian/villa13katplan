@@ -2,10 +2,10 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Villa 13 - Cinayet Mahalli Araştırması</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Villa13 - Cinayet Keşif Oyunu</title>
     <style>
-        /* Genel Stiller */
+        /* Genel Stil */
         * {
             margin: 0;
             padding: 0;
@@ -14,1130 +14,725 @@
         }
         
         body {
-            background-color: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
+            background-color: #1a1a1a;
+            color: white;
+            overflow-x: hidden;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 100%;
             margin: 0 auto;
             padding: 20px;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            position: relative;
         }
         
-        header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
+        /* Başlık */
         h1 {
+            text-align: center;
+            margin: 20px 0;
+            color: #ff4d4d;
             font-size: 2rem;
-            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
         }
         
-        .subtitle {
-            color: #666;
-            font-size: 1rem;
-        }
-        
-        /* Navigasyon ve Kontroller */
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .floor-switcher {
-            display: flex;
-            background-color: #e0e0e0;
-            border-radius: 8px;
+        /* Kat Görüntüleme Alanı */
+        .floor-view {
+            position: relative;
+            max-width: 100%;
+            margin: 0 auto;
             overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        .floor-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            border: 2px solid #444;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        /* Kat Seçim Butonları */
+        .floor-nav {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 20px;
         }
         
         .floor-btn {
-            padding: 10px 20px;
+            padding: 12px 30px;
+            background-color: #333;
+            color: white;
             border: none;
-            background: none;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: 500;
+            font-size: 1.2rem;
+            font-weight: bold;
             transition: all 0.3s ease;
+        }
+        
+        .floor-btn:hover {
+            background-color: #444;
         }
         
         .floor-btn.active {
-            background-color: #4a69bd;
+            background-color: #ff4d4d;
             color: white;
+            box-shadow: 0 0 15px rgba(255, 77, 77, 0.5);
         }
         
-        .sound-btn {
-            width: 40px;
-            height: 40px;
-            border: none;
-            border-radius: 50%;
-            background-color: #e0e0e0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* Ana İçerik Alanı */
-        .content-area {
-            flex: 1;
-            position: relative;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: white;
-            overflow: hidden;
-        }
-        
-        /* Kat Planları */
-        .floor-plan {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            display: none; /* Varsayılan olarak gizli */
-        }
-        
-        .floor-plan.active {
-            display: block;
-        }
-        
-        .floor-plan svg {
-            width: 100%;
-            height: 100%;
-        }
-        
-        /* Tıklanabilir Odalar */
+        /* Hotspot Alanları (Odalar) */
         .room {
             position: absolute;
-            border: 2px solid rgba(255, 0, 0, 0.5);
-            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
             cursor: pointer;
             transition: all 0.3s ease;
-            background-color: rgba(255, 0, 0, 0.1);
-            z-index: 10;
+            border-radius: 4px;
         }
         
         .room:hover {
-            border-color: rgba(74, 105, 189, 0.8);
-            background-color: rgba(74, 105, 189, 0.3);
+            background-color: rgba(255, 77, 77, 0.3);
+            border-color: rgba(255, 77, 77, 0.5);
         }
         
-        .room.searched {
-            border-color: rgba(46, 204, 113, 0.7);
-            background-color: rgba(46, 204, 113, 0.2);
-        }
-        
-        /* Arama Modalı */
-        .modal {
+        /* Arama Modal */
+        .search-modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 100;
-            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 999;
             justify-content: center;
-        }
-        
-        .modal.active {
-            display: flex;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
         }
         
         .modal-content {
-            background-color: white;
+            background-color: #333;
             padding: 30px;
-            border-radius: 10px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
+            border-radius: 15px;
+            max-width: 80%;
+            box-shadow: 0 0 25px rgba(255, 77, 77, 0.3);
         }
         
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .room-name {
+            font-size: 2rem;
             margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
+            color: #ff4d4d;
         }
         
-        .modal-title {
+        .timer {
+            font-size: 2.5rem;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        .search-text {
             font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #666;
-        }
-        
-        /* Arama İlerleme Çubuğu */
-        .search-progress {
-            width: 100%;
-            height: 15px;
-            background-color: #eee;
-            border-radius: 10px;
             margin-bottom: 10px;
-            overflow: hidden;
         }
         
-        .progress-bar {
-            height: 100%;
-            background-color: #4a69bd;
-            width: 0%;
-            transition: width 1s linear;
-        }
-        
-        .time-display {
-            text-align: center;
-            font-family: monospace;
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-        }
-        
-        /* Bulunan Nesneler Grid */
-        .objects-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        /* İpuçları Bölümü */
+        .clues-container {
+            display: none;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 15px;
             margin-top: 20px;
         }
         
-        .object-item {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: #333;
+        .clue {
+            cursor: pointer;
+            position: relative;
             transition: all 0.3s ease;
+            width: 150px;
+            height: 150px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
         }
         
-        .object-item:hover {
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
+        .clue img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
         }
         
-        .object-icon {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 10px;
+        .clue:hover img {
+            transform: scale(1.1);
         }
         
-        .object-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .object-desc {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        .found-tag {
-            margin-top: 5px;
-            padding: 3px 8px;
-            background-color: #e3f9e5;
-            color: #2ecc71;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-        
-        /* Mobil Zoom İpucu */
-        .zoom-hint {
+        .clue-name {
             position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            font-size: 0.8rem;
-            display: none;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            text-align: center;
+            font-weight: bold;
         }
         
-        /* Zoom Kontrolü */
+        /* Zoom Kontrolleri */
         .zoom-controls {
             position: absolute;
             bottom: 20px;
             right: 20px;
+            display: flex;
+            gap: 10px;
         }
         
-        .reset-zoom-btn {
+        .zoom-btn {
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
             width: 40px;
             height: 40px;
             border: none;
             border-radius: 50%;
-            background-color: white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            font-size: 1.5rem;
             cursor: pointer;
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
         }
         
-        /* Duyarlı Tasarım */
+        /* Mobil Düzenlemeler */
         @media (max-width: 768px) {
-            .zoom-hint {
-                display: block;
+            .modal-content {
+                max-width: 90%;
+                padding: 20px;
             }
             
-            .objects-grid {
-                grid-template-columns: 1fr;
+            .room-name {
+                font-size: 1.5rem;
             }
+            
+            .timer {
+                font-size: 2rem;
+            }
+            
+            .search-text {
+                font-size: 1.2rem;
+            }
+            
+            .clue {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .floor-btn {
+                padding: 10px 20px;
+                font-size: 1rem;
+            }
+        }
+        
+        /* Animasyonlar */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Villa 13</h1>
-            <p class="subtitle">Cinayet Mahalli Araştırması</p>
-        </header>
+        <h1>Villa13 - Cinayet Keşif Oyunu</h1>
         
-        <div class="controls">
-            <div class="floor-switcher">
-                <button class="floor-btn active" data-floor="1">1. Kat</button>
-                <button class="floor-btn" data-floor="2">2. Kat</button>
-            </div>
-            
-            <button class="sound-btn" id="toggle-sound">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                </svg>
-            </button>
+        <div class="floor-nav">
+            <button class="floor-btn active" data-floor="1">1. KAT</button>
+            <button class="floor-btn" data-floor="2">2. KAT</button>
         </div>
         
-        <div class="content-area">
-            <!-- 1. Kat Planı -->
-            <div class="floor-plan active" id="floor1">
-                <!-- SVG doğrudan gömülü -->
-                <svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Background -->
-                    <rect width="600" height="600" fill="#f5f5f5"/>
-                    
-                    <!-- Villa outline for 1st floor -->
-                    <path d="M150,100 L550,100 L550,450 L150,450 Z" fill="#f9e0d9" stroke="#333" stroke-width="2"/>
-                    
-                    <!-- Pool -->
-                    <rect x="430" y="140" width="70" height="70" fill="#b3e0ff" stroke="#333"/>
-                    <text x="465" y="175" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">HAVUZ</text>
-                    
-                    <!-- Rooms -->
-                    <!-- Living Room / Çalışma Odası -->
-                    <rect x="350" y="280" width="80" height="70" fill="#faebd7" stroke="#333"/>
-                    <text x="390" y="315" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">ÇALIŞMA ODASI</text>
-                    
-                    <!-- Kitchen / Mutfak -->
-                    <rect x="210" y="150" width="80" height="100" fill="#f0e68c" stroke="#333"/>
-                    <text x="250" y="200" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">MUTFAK</text>
-                    
-                    <!-- Entrance / Giriş -->
-                    <rect x="280" y="350" width="50" height="50" fill="#d3d3d3" stroke="#333"/>
-                    <text x="305" y="375" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">GİRİŞ</text>
-                    
-                    <!-- Hamdi's Room -->
-                    <rect x="440" y="340" width="50" height="50" fill="#ffc0cb" stroke="#333"/>
-                    <text x="465" y="365" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">HAMDİ</text>
-                    
-                    <!-- Nalan's Room -->
-                    <rect x="490" y="220" width="50" height="50" fill="#ffb6c1" stroke="#333"/>
-                    <text x="515" y="245" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">NALAN</text>
-                    
-                    <!-- Floor Label -->
-                    <rect x="500" y="460" width="80" height="30" fill="#87ceeb" stroke="#333" rx="5" ry="5"/>
-                    <text x="540" y="480" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">1. KAT</text>
-                </svg>
-                
-                <!-- Tıklanabilir Oda Alanları - 1. Kat -->
-                <div class="room" id="room-entrance" style="left: 280px; top: 350px; width: 50px; height: 50px;"></div>
-                <div class="room" id="room-kitchen" style="left: 210px; top: 150px; width: 80px; height: 100px;"></div>
-                <div class="room" id="room-living-room" style="left: 350px; top: 280px; width: 80px; height: 70px;"></div>
-                <div class="room" id="room-hamdi" style="left: 440px; top: 340px; width: 50px; height: 50px;"></div>
-                <div class="room" id="room-nalan" style="left: 490px; top: 220px; width: 50px; height: 50px;"></div>
-                <div class="room" id="room-pool" style="left: 430px; top: 140px; width: 70px; height: 70px;"></div>
-            </div>
+        <div class="floor-view">
+            <!-- 1. Kat Görüntüsü (Varsayılan) -->
+            <img src="villa_1kat.jpg" alt="1. Kat" class="floor-image" id="floor1" style="display: block;">
             
-            <!-- 2. Kat Planı -->
-            <div class="floor-plan" id="floor2">
-                <!-- SVG doğrudan gömülü -->
-                <svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Background -->
-                    <rect width="600" height="600" fill="#f5f5f5"/>
-                    
-                    <!-- Villa outline for 2nd floor -->
-                    <path d="M20,250 L200,250 L200,500 L20,500 Z" fill="#e6e6fa" stroke="#333" stroke-width="2"/>
-                    
-                    <!-- Rooms -->
-                    <!-- Sercan's Room -->
-                    <rect x="150" y="300" width="50" height="50" fill="#d8bfd8" stroke="#333"/>
-                    <text x="175" y="325" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">SERCAN</text>
-                    
-                    <!-- Asli's Room -->
-                    <rect x="70" y="350" width="50" height="50" fill="#dda0dd" stroke="#333"/>
-                    <text x="95" y="375" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">ASLI</text>
-                    
-                    <!-- Elif's Room -->
-                    <rect x="70" y="270" width="50" height="50" fill="#ee82ee" stroke="#333"/>
-                    <text x="95" y="295" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">ELİF</text>
-                    
-                    <!-- Fikret's Room -->
-                    <rect x="110" y="450" width="50" height="50" fill="#da70d6" stroke="#333"/>
-                    <text x="135" y="475" font-family="Arial" font-size="14" text-anchor="middle" fill="#333">FİKRET</text>
-                    
-                    <!-- Floor Label -->
-                    <rect x="120" y="520" width="80" height="30" fill="#87ceeb" stroke="#333" rx="5" ry="5"/>
-                    <text x="160" y="540" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" fill="#333">2. KAT</text>
-                </svg>
-                
-                <!-- Tıklanabilir Oda Alanları - 2. Kat -->
-                <div class="room" id="room-sercan" style="left: 150px; top: 300px; width: 50px; height: 50px;"></div>
-                <div class="room" id="room-asli" style="left: 70px; top: 350px; width: 50px; height: 50px;"></div>
-                <div class="room" id="room-elif" style="left: 70px; top: 270px; width: 50px; height: 50px;"></div>
-                <div class="room" id="room-fikret" style="left: 110px; top: 450px; width: 50px; height: 50px;"></div>
-            </div>
+            <!-- 2. Kat Görüntüsü (Başlangıçta Gizli) -->
+            <img src="villa_2kat.jpg" alt="2. Kat" class="floor-image" id="floor2" style="display: none;">
             
-            <!-- Mobil Yakınlaştırma İpucu -->
-            <div class="zoom-hint">İki parmak ile yakınlaştırabilirsiniz</div>
+            <!-- 1. Kat Odaları -->
+            <div class="room" data-room="mutfak" data-floor="1" style="top: 28%; left: 11%; width: 30%; height: 12%;" title="Mutfak"></div>
+            <div class="room" data-room="salon" data-floor="1" style="top: 41%; left: 15%; width: 37%; height: 16%;" title="Salon"></div>
+            <div class="room" data-room="calisma" data-floor="1" style="top: 45%; left: 52%; width: 15%; height: 12%;" title="Çalışma Odası"></div>
+            <div class="room" data-room="yemek" data-floor="1" style="top: 65%; left: 67%; width: 15%; height: 11%;" title="Yemek Odası"></div>
+            <div class="room" data-room="nalan" data-floor="1" style="top: 31%; right: 18%; width: 17%; height: 13%;" title="Nalan'ın Odası"></div>
             
-            <!-- Yakınlaştırma Kontrolleri -->
+            <!-- 2. Kat Odaları -->
+            <div class="room" data-room="elif" data-floor="2" style="top: 10%; left: 10%; width: 15%; height: 15%;" title="Elif'in Odası"></div>
+            <div class="room" data-room="asli" data-floor="2" style="top: 40%; left: 10%; width: 15%; height: 15%;" title="Aslı'nın Odası"></div>
+            <div class="room" data-room="sercan" data-floor="2" style="top: 15%; right: 15%; width: 15%; height: 15%;" title="Sercan'ın Odası"></div>
+            <div class="room" data-room="fikret" data-floor="2" style="bottom: 15%; left: 10%; width: 15%; height: 15%;" title="Fikret'in Odası"></div>
+            
+            <!-- Zoom Kontrolleri -->
             <div class="zoom-controls">
-                <button class="reset-zoom-btn" id="reset-zoom">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
-                        <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
-                        <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
-                        <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
-                    </svg>
-                </button>
+                <button class="zoom-btn" id="zoomIn">+</button>
+                <button class="zoom-btn" id="zoomOut">-</button>
+                <button class="zoom-btn" id="zoomReset">⟲</button>
             </div>
         </div>
     </div>
     
-    <!-- Oda Arama Modalı -->
-    <div class="modal" id="search-modal">
+    <!-- Arama Modal -->
+    <div class="search-modal" id="searchModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title" id="room-title">Oda Adı</h2>
-                <button class="close-btn" id="close-modal">&times;</button>
-            </div>
+            <h2 class="room-name" id="currentRoom">Oda Adı</h2>
+            <p class="search-text">Oda aranıyor...</p>
+            <div class="timer" id="searchTimer">00</div>
             
-            <div class="modal-body">
-                <div id="search-section">
-                    <p class="search-info" id="search-info">Oda aranıyor...</p>
-                    <div class="search-progress">
-                        <div class="progress-bar" id="progress-bar"></div>
-                    </div>
-                    <div class="time-display" id="time-display">00:00</div>
-                </div>
-                
-                <div id="objects-section" style="display: none;">
-                    <p class="objects-title">Odada bulunan eşyalar:</p>
-                    <div class="objects-grid" id="objects-grid">
-                        <!-- Nesneler dinamik olarak eklenecek -->
-                    </div>
-                </div>
+            <!-- İpucu Bölümü (Arama tamamlandığında gösterilecek) -->
+            <div class="clues-container" id="cluesContainer">
+                <!-- İpuçları dinamik olarak eklenir -->
             </div>
         </div>
     </div>
     
     <script>
-        // Oda ve Nesne Verisi
-        const rooms = [
-            // 1. Kat Odaları
-            {
-                id: 'room-entrance',
-                name: 'Giriş',
-                floor: 1,
-                searchTime: 20, // Saniye cinsinden arama süresi
-                objects: [
-                    {
-                        id: 'entrance-key',
-                        name: 'Anahtar',
-                        icon: 'key',
-                        link: '/minigames/key.html',
-                        description: 'Ön kapının anahtarı'
-                    },
-                    {
-                        id: 'entrance-note',
-                        name: 'Not',
-                        icon: 'note',
-                        link: '/minigames/note.html',
-                        description: 'Yırtılmış bir kağıt parçası'
-                    }
-                ]
-            },
-            {
-                id: 'room-kitchen',
-                name: 'Mutfak',
-                floor: 1,
-                searchTime: 30,
-                objects: [
-                    {
-                        id: 'kitchen-knife',
-                        name: 'Bıçak',
-                        icon: 'knife',
-                        link: '/minigames/knife.html',
-                        description: 'Keskin bir mutfak bıçağı'
-                    },
-                    {
-                        id: 'kitchen-food',
-                        name: 'Yemek Artıkları',
-                        icon: 'food',
-                        link: '/minigames/food.html',
-                        description: 'Masada bırakılmış yemek'
-                    }
-                ]
-            },
-            {
-                id: 'room-living-room',
-                name: 'Çalışma Odası',
-                floor: 1,
-                searchTime: 25,
-                objects: [
-                    {
-                        id: 'living-room-safe',
-                        name: 'Kasa',
-                        icon: 'safe',
-                        link: '/minigames/safe.html',
-                        description: 'Kilitli bir kasa'
-                    },
-                    {
-                        id: 'living-room-drawer',
-                        name: 'Çekmece',
-                        icon: 'drawer',
-                        link: '/minigames/drawer.html',
-                        description: 'Yarı açık çekmece'
-                    }
-                ]
-            },
-            {
-                id: 'room-hamdi',
-                name: 'Hamdi',
-                floor: 1,
-                searchTime: 25,
-                objects: [
-                    {
-                        id: 'hamdi-book',
-                        name: 'Kitap',
-                        icon: 'book',
-                        link: '/minigames/book.html',
-                        description: 'Yatağın yanında açık bir kitap'
-                    },
-                    {
-                        id: 'hamdi-phone',
-                        name: 'Telefon',
-                        icon: 'phone',
-                        link: '/minigames/phone.html',
-                        description: 'Şarjda unutulmuş bir telefon'
-                    }
-                ]
-            },
-            {
-                id: 'room-nalan',
-                name: 'Nalan',
-                floor: 1,
-                searchTime: 25,
-                objects: [
-                    {
-                        id: 'nalan-mirror',
-                        name: 'Ayna',
-                        icon: 'mirror',
-                        link: '/minigames/mirror.html',
-                        description: 'Çatlamış bir ayna'
-                    },
-                    {
-                        id: 'nalan-jewelry',
-                        name: 'Mücevher Kutusu',
-                        icon: 'jewelry',
-                        link: '/minigames/jewelry.html',
-                        description: 'Açık bir mücevher kutusu'
-                    }
-                ]
-            },
-            {
-                id: 'room-pool',
-                name: 'Havuz',
-                floor: 1,
-                searchTime: 15,
-                objects: [
-                    {
-                        id: 'pool-goggles',
-                        name: 'Gözlük',
-                        icon: 'goggles',
-                        link: '/minigames/goggles.html',
-                        description: 'Havuz kenarında bulunmuş gözlük'
-                    },
-                    {
-                        id: 'pool-towel',
-                        name: 'Havlu',
-                        icon: 'towel',
-                        link: '/minigames/towel.html',
-                        description: 'Islak bir havlu'
-                    }
-                ]
-            },
-            
-            // 2. Kat Odaları
-            {
-                id: 'room-sercan',
-                name: 'Sercan',
-                floor: 2,
-                searchTime: 25,
-                objects: [
-                    {
-                        id: 'sercan-laptop',
-                        name: 'Laptop',
-                        icon: 'laptop',
-                        link: '/minigames/laptop.html',
-                        description: 'Açık bırakılmış bir laptop'
-                    },
-                    {
-                        id: 'sercan-bag',
-                        name: 'Çanta',
-                        icon: 'bag',
-                        link: '/minigames/bag.html',
-                        description: 'İçi karıştırılmış bir çanta'
-                    }
-                ]
-            },
-            {
-                id: 'room-asli',
-                name: 'Aslı',
-                floor: 2,
-                searchTime: 25,
-                objects: [
-                    {
-                        id: 'asli-diary',
-                        name: 'Günlük',
-                        icon: 'diary',
-                        link: '/minigames/diary.html',
-                        description: 'Kilitli bir günlük'
-                    },
-                    {
-                        id: 'asli-letter',
-                        name: 'Mektup',
-                        icon: 'letter',
-                        link: '/minigames/letter.html',
-                        description: 'Yarı yanmış bir mektup'
-                    }
-                ]
-            },
-            {
-                id: 'room-elif',
-                name: 'Elif',
-                floor: 2,
-                searchTime: 25,
-                objects: [
-                    {
-                        id: 'elif-camera',
-                        name: 'Kamera',
-                        icon: 'camera',
-                        link: '/minigames/camera.html',
-                        description: 'Pilsiz bir dijital kamera'
-                    },
-                    {
-                        id: 'elif-glasses',
-                        name: 'Gözlük',
-                        icon: 'glasses',
-                        link: '/minigames/glasses.html',
-                        description: 'Çerçevesi kırılmış gözlük'
-                    }
-                ]
-            },
-            {
-                id: 'room-fikret',
-                name: 'Fikret',
-                floor: 2,
-                searchTime: 25,
-                objects: [
-                    {
-                        id: 'fikret-briefcase',
-                        name: 'Evrak Çantası',
-                        icon: 'briefcase',
-                        link: '/minigames/briefcase.html',
-                        description: 'Kilitli bir evrak çantası'
-                    },
-                    {
-                        id: 'fikret-pill',
-                        name: 'İlaç Kutusu',
-                        icon: 'pill',
-                        link: '/minigames/pill.html',
-                        description: 'Reçetesiz ilaç kutusu'
-                    }
-                ]
-            }
-        ];
-        
-        // Oyun ilerleme durumu için yerel depolama anahtarı
-        const STORAGE_KEY = 'villa13_progress';
-        
-        // DOM Elemanları
+        // Oyun değişkenleri
+        const floors = {
+            1: document.getElementById('floor1'),
+            2: document.getElementById('floor2')
+        };
         const floorButtons = document.querySelectorAll('.floor-btn');
-        const floorPlans = document.querySelectorAll('.floor-plan');
-        const roomElements = document.querySelectorAll('.room');
-        const searchModal = document.getElementById('search-modal');
-        const closeModalBtn = document.getElementById('close-modal');
-        const roomTitle = document.getElementById('room-title');
-        const searchSection = document.getElementById('search-section');
-        const objectsSection = document.getElementById('objects-section');
-        const progressBar = document.getElementById('progress-bar');
-        const timeDisplay = document.getElementById('time-display');
-        const objectsGrid = document.getElementById('objects-grid');
-        const soundButton = document.getElementById('toggle-sound');
-        const resetZoomButton = document.getElementById('reset-zoom');
+        const rooms = document.querySelectorAll('.room');
+        const searchModal = document.getElementById('searchModal');
+        const currentRoomElement = document.getElementById('currentRoom');
+        const searchTimer = document.getElementById('searchTimer');
+        const cluesContainer = document.getElementById('cluesContainer');
         
-        // Sesten sorumlu değişkenler
-        let isMuted = false;
-        // Ses dosyaları URL'leri - şimdilik boş
-        let hitSound = new Audio('data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFzZXJQaXN0b2xzLmNvbQBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV');
-        let successSound = new Audio('data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFzZXJQaXN0b2xzLmNvbQBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV');
+        // Zoom değişkenleri
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const zoomResetBtn = document.getElementById('zoomReset');
+        const floorView = document.querySelector('.floor-view');
+        const floorImages = document.querySelectorAll('.floor-image');
+        let currentScale = 1;
+        let currentTranslateX = 0;
+        let currentTranslateY = 0;
+        let isDragging = false;
+        let startX, startY, initialTranslateX, initialTranslateY;
         
-        // Oyun durumu
-        let gameProgress = {
-            currentFloor: 1,
-            roomSearches: {},
-            lastUpdated: Date.now()
+        // Geçerli kat
+        let currentFloor = 1;
+        
+        // Arama ve ipuçları
+        let searchInterval;
+        const roomSearchTimes = {
+            'salon': 30,
+            'mutfak': 15,
+            'calisma': 20,
+            'yemek': 25,
+            'nalan': 20,
+            'elif': 25,
+            'asli': 30,
+            'sercan': 20,
+            'fikret': 35
         };
         
-        // İlerleme durumunu yükle
-        loadGameProgress();
+        // İpucu tanımlamaları (oda-ipucu eşleşmeleri)
+        const roomClues = {
+            'salon': [
+                { name: 'Kanepe', image: 'https://placehold.co/150x150/333/white?text=Kanepe', link: 'minigame1.html' },
+                { name: 'Televizyon', image: 'https://placehold.co/150x150/333/white?text=TV', link: 'minigame2.html' }
+            ],
+            'mutfak': [
+                { name: 'Buzdolabı', image: 'https://placehold.co/150x150/333/white?text=Buzdolabı', link: 'minigame3.html' },
+                { name: 'Bıçak Çekmecesi', image: 'https://placehold.co/150x150/333/white?text=Bıçak', link: 'minigame4.html' }
+            ],
+            'calisma': [
+                { name: 'Kasa', image: 'https://placehold.co/150x150/333/white?text=Kasa', link: 'kasa.html' },
+                { name: 'Bilgisayar', image: 'https://placehold.co/150x150/333/white?text=PC', link: 'minigame5.html' }
+            ],
+            'yemek': [
+                { name: 'Çekmece', image: 'https://placehold.co/150x150/333/white?text=Çekmece', link: 'minigame6.html' }
+            ],
+            'nalan': [
+                { name: 'Dolap', image: 'https://placehold.co/150x150/333/white?text=Dolap', link: 'minigame7.html' },
+                { name: 'Yatağın Altı', image: 'https://placehold.co/150x150/333/white?text=Yatak', link: 'minigame8.html' }
+            ],
+            'elif': [
+                { name: 'Makyaj Masası', image: 'https://placehold.co/150x150/333/white?text=Makyaj', link: 'minigame9.html' }
+            ],
+            'asli': [
+                { name: 'Kitaplık', image: 'https://placehold.co/150x150/333/white?text=Kitaplık', link: 'minigame10.html' },
+                { name: 'Çekmece', image: 'https://placehold.co/150x150/333/white?text=Çekmece', link: 'minigame11.html' }
+            ],
+            'sercan': [
+                { name: 'Spor Çantası', image: 'https://placehold.co/150x150/333/white?text=Çanta', link: 'minigame12.html' }
+            ],
+            'fikret': [
+                { name: 'Gizli Bölme', image: 'https://placehold.co/150x150/333/white?text=Gizli', link: 'minigame13.html' }
+            ]
+        };
         
-        // Başlangıç katını ayarla
-        setActiveFloor(gameProgress.currentFloor);
+        // LocalStorage anahtar adı
+        const STORAGE_KEY = 'villa13_game_state';
         
-        // Zaten aranmış odaları işaretle
-        markSearchedRooms();
+        // Oyun durumunu localStorage'dan yükleme
+        function loadGameState() {
+            const savedState = localStorage.getItem(STORAGE_KEY);
+            if (savedState) {
+                return JSON.parse(savedState);
+            }
+            return {
+                searchedRooms: {},
+                completedSearches: []
+            };
+        }
         
-        // İkon SVG'lerini döndüren fonksiyon
-        function getObjectIconSVG(iconType) {
-            const svgStart = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
-            const svgEnd = '</svg>';
+        // Oyun durumunu localStorage'a kaydetme
+        function saveGameState(state) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+        
+        // Mevcut oyun durumu
+        let gameState = loadGameState();
+        
+        // Sayfa yüklendiğinde kesintiye uğramış aramaları kontrol et
+        window.addEventListener('load', () => {
+            checkPendingSearches();
+        });
+        
+        // Aramaları kontrol et ve devam ettir
+        function checkPendingSearches() {
+            const currentTime = new Date().getTime();
             
-            switch (iconType) {
-                case 'key': 
-                    return svgStart + 
-                        '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />' +
-                        svgEnd;
-                case 'note': 
-                    return svgStart + 
-                        '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />' +
-                        '<polyline points="14 2 14 8 20 8" />' +
-                        '<line x1="16" x2="8" y1="13" y2="13" />' +
-                        '<line x1="16" x2="8" y1="17" y2="17" />' +
-                        '<line x1="10" x2="8" y1="9" y2="9" />' +
-                        svgEnd;
-                case 'knife': 
-                    return svgStart + 
-                        '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />' +
-                        '<path d="M7 2v20" />' +
-                        '<path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />' +
-                        svgEnd;
-                case 'food': 
-                    return svgStart + 
-                        '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z" />' +
-                        '<path d="M12 8c2 0 4-1 4-1" />' +
-                        '<path d="M8.04 8.54c-1.96.32-3.04 1.32-3.04 1.32" />' +
-                        '<path d="M12 12c0-2 1-3 1-3" />' +
-                        '<path d="M9 15c-1-1.5-1-3-1-3" />' +
-                        svgEnd;
-                case 'safe': 
-                    return svgStart + 
-                        '<rect width="18" height="11" x="3" y="11" rx="2" ry="2" />' +
-                        '<path d="M7 11V7a5 5 0 0 1 10 0v4" />' +
-                        svgEnd;
-                case 'drawer': 
-                    return svgStart + 
-                        '<path d="M16.5 9.4 7.55 4.24" />' +
-                        '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />' +
-                        '<polyline points="3.29 7 12 12 20.71 7" />' +
-                        '<line x1="12" x2="12" y1="22" y2="12" />' +
-                        svgEnd;
-                // Diğer ikonlar için aynı şekilde devam et
-                default:
-                    return svgStart + 
-                        '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />' +
-                        '<path d="m3.3 7 8.7 5 8.7-5" />' +
-                        '<path d="M12 22V12" />' +
-                        svgEnd;
+            for (const roomId in gameState.searchedRooms) {
+                const roomData = gameState.searchedRooms[roomId];
+                const endTime = roomData.startTime + (roomSearchTimes[roomId] * 1000);
+                
+                // Arama henüz tamamlanmamış
+                if (currentTime < endTime && !gameState.completedSearches.includes(roomId)) {
+                    const remainingTime = Math.ceil((endTime - currentTime) / 1000);
+                    
+                    // Otomatik olarak odayı aç ve kalan süreyi göster
+                    if (remainingTime > 0) {
+                        const roomFloor = document.querySelector(`.room[data-room="${roomId}"]`).dataset.floor;
+                        switchFloor(roomFloor);
+                        startSearch(roomId, remainingTime);
+                    } else {
+                        // Süre bitmişse tamamlananlar listesine ekle
+                        gameState.completedSearches.push(roomId);
+                        saveGameState(gameState);
+                    }
+                }
             }
         }
         
-        // Kat Değiştirme İşlemleri
-        floorButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const floor = parseInt(button.dataset.floor);
-                setActiveFloor(floor);
-                
-                // İlerlemeyi kaydet
-                gameProgress.currentFloor = floor;
-                saveGameProgress();
-            });
-        });
-        
-        // Aktif katı ayarla
-        function setActiveFloor(floor) {
-            // Butonları güncelle
+        // Kat değiştirme fonksiyonu
+        function switchFloor(floorNum) {
+            currentFloor = parseInt(floorNum);
+            
+            // Görsel değiştirme
+            for (let floor in floors) {
+                floors[floor].style.display = floor == currentFloor ? 'block' : 'none';
+            }
+            
+            // Buton aktifliğini güncelle
             floorButtons.forEach(btn => {
-                if (parseInt(btn.dataset.floor) === floor) {
+                if (btn.dataset.floor == currentFloor) {
                     btn.classList.add('active');
                 } else {
                     btn.classList.remove('active');
                 }
             });
             
-            // Kat planlarını güncelle
-            floorPlans.forEach(plan => {
-                if (plan.id === `floor${floor}`) {
-                    plan.classList.add('active');
+            // Odaları güncelle (sadece aktif katın odaları gösterilsin)
+            rooms.forEach(room => {
+                if (room.dataset.floor == currentFloor) {
+                    room.style.display = 'block';
                 } else {
-                    plan.classList.remove('active');
+                    room.style.display = 'none';
                 }
             });
+            
+            // Zoom'u sıfırla
+            resetZoom();
         }
         
-        // Odalara tıklama olayları
-        roomElements.forEach(room => {
-            room.addEventListener('click', () => {
-                const roomId = room.id;
-                const roomData = getRoomById(roomId);
-                
-                if (roomData) {
-                    openRoomSearch(roomData);
-                }
-            });
-        });
-        
-        // ID'ye göre oda verisi bul
-        function getRoomById(id) {
-            return rooms.find(room => room.id === id);
-        }
-        
-        // Oda arama modalını aç
-        function openRoomSearch(room) {
-            // Modal içeriğini hazırla
-            roomTitle.textContent = `${room.name} Odası`;
+        // Arama fonksiyonu
+        function startSearch(roomId, remainingTime = null) {
+            const roomName = document.querySelector(`.room[data-room="${roomId}"]`).title;
+            currentRoomElement.textContent = roomName;
             
-            // Oda daha önce aranmış mı kontrol et
-            const roomSearch = gameProgress.roomSearches[room.id];
-            
-            if (roomSearch && roomSearch.isSearched) {
-                // Oda zaten aranmışsa, nesneleri göster
-                showObjects(room, roomSearch.objectsFound || []);
-            } else {
-                // Yeni arama başlat
-                startRoomSearch(room);
-            }
+            // İpuçları bölümünü gizle, arama zamanını göster
+            cluesContainer.style.display = 'none';
+            searchTimer.parentElement.querySelector('.search-text').textContent = 'Oda aranıyor...';
+            searchTimer.style.display = 'block';
             
             // Modalı göster
-            searchModal.classList.add('active');
-        }
-        
-        // Arama başlat
-        function startRoomSearch(room) {
-            searchSection.style.display = 'block';
-            objectsSection.style.display = 'none';
+            searchModal.style.display = 'flex';
             
-            let remainingTime = room.searchTime;
-            let startTime = Date.now();
+            // Önceki timer'ı temizle
+            if (searchInterval) clearInterval(searchInterval);
             
-            // İlerleme durumunu güncelle
-            gameProgress.roomSearches[room.id] = {
-                roomId: room.id,
-                isSearched: false,
-                startTime: startTime,
-                objectsFound: []
-            };
-            saveGameProgress();
+            // Eğer daha önce aramaya başlanmışsa kalan süreyi kullan
+            let timeLeft = remainingTime || roomSearchTimes[roomId];
             
-            // Zamanlayıcıyı başlat
-            const timer = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                remainingTime = Math.max(0, room.searchTime - elapsed);
+            // Eğer bu ilk arama ise, arama başlangıç zamanını kaydet
+            if (!remainingTime && !gameState.searchedRooms[roomId]) {
+                gameState.searchedRooms[roomId] = {
+                    startTime: new Date().getTime()
+                };
+                saveGameState(gameState);
+            }
+            
+            // Timer'ı ayarla
+            searchTimer.textContent = timeLeft;
+            searchTimer.classList.add('pulse');
+            
+            searchInterval = setInterval(() => {
+                timeLeft--;
+                searchTimer.textContent = timeLeft;
                 
-                // Zamanı ve ilerleme çubuğunu güncelle
-                updateSearchProgress(remainingTime, room.searchTime);
-                
-                if (remainingTime <= 0) {
-                    clearInterval(timer);
-                    completeSearch(room);
+                if (timeLeft <= 0) {
+                    clearInterval(searchInterval);
+                    searchCompleted(roomId);
                 }
             }, 1000);
-            
-            // İlk güncellemeyi hemen yap
-            updateSearchProgress(remainingTime, room.searchTime);
         }
         
-        // Arama ilerleme durumunu güncelle
-        function updateSearchProgress(remainingTime, totalTime) {
-            const progress = ((totalTime - remainingTime) / totalTime) * 100;
-            progressBar.style.width = `${progress}%`;
+        // Arama tamamlandığında çağrılacak fonksiyon
+        function searchCompleted(roomId) {
+            // Timer'ı gizle
+            searchTimer.style.display = 'none';
+            searchTimer.classList.remove('pulse');
             
-            // Zamanı formatlayıp göster
-            const minutes = Math.floor(remainingTime / 60);
-            const seconds = remainingTime % 60;
-            timeDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
-        
-        // Aramayı tamamla
-        function completeSearch(room) {
-            // Ses çal
-            if (!isMuted) {
-                successSound.play();
+            // Tamamlanan odayı kaydet
+            if (!gameState.completedSearches.includes(roomId)) {
+                gameState.completedSearches.push(roomId);
+                saveGameState(gameState);
             }
             
-            // İlerleme durumunu güncelle
-            gameProgress.roomSearches[room.id] = {
-                ...gameProgress.roomSearches[room.id],
-                isSearched: true,
-                endTime: Date.now()
-            };
-            saveGameProgress();
+            // İpuçlarını gösterme mesajını güncelle
+            searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
             
-            // Oda UI'ını güncelle
-            const roomElement = document.getElementById(room.id);
-            if (roomElement) {
-                roomElement.classList.add('searched');
-            }
+            // İpuçlarını oluştur
+            createClues(roomId);
             
-            // Modalde nesneleri göster
-            showObjects(room, []);
+            // İpuçları bölümünü göster
+            cluesContainer.style.display = 'flex';
         }
         
-        // Nesneleri göster
-        function showObjects(room, foundObjects) {
-            searchSection.style.display = 'none';
-            objectsSection.style.display = 'block';
+        // İpuçlarını oluşturma fonksiyonu
+        function createClues(roomId) {
+            // Önce mevcut ipuçlarını temizle
+            cluesContainer.innerHTML = '';
             
-            // Nesneler grid'ini temizle
-            objectsGrid.innerHTML = '';
+            // İlgili odanın ipuçlarını oluştur
+            const clues = roomClues[roomId] || [];
             
-            // Nesneleri ekle
-            room.objects.forEach(object => {
-                const isFound = foundObjects.includes(object.id);
-                
-                const objectElement = document.createElement('a');
-                objectElement.className = 'object-item';
-                objectElement.href = object.link;
-                objectElement.target = '_blank';
-                
-                objectElement.innerHTML = `
-                    <div class="object-icon">${getObjectIconSVG(object.icon)}</div>
-                    <div class="object-name">${object.name}</div>
-                    <div class="object-desc">${object.description}</div>
-                    ${isFound ? '<span class="found-tag">İncelendi</span>' : ''}
+            clues.forEach(clue => {
+                const clueElement = document.createElement('div');
+                clueElement.className = 'clue';
+                clueElement.innerHTML = `
+                    <img src="${clue.image}" alt="${clue.name}">
+                    <div class="clue-name">${clue.name}</div>
                 `;
                 
-                objectElement.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    
-                    // Nesne bulundu olarak işaretle
-                    if (!isFound) {
-                        // Ses çal
-                        if (!isMuted) {
-                            hitSound.play();
-                        }
-                        
-                        // İlerleme durumunu güncelle
-                        const roomSearch = gameProgress.roomSearches[room.id];
-                        if (roomSearch) {
-                            roomSearch.objectsFound = [...(roomSearch.objectsFound || []), object.id];
-                            saveGameProgress();
-                            
-                            // UI güncelle
-                            objectElement.innerHTML += '<span class="found-tag">İncelendi</span>';
-                        }
-                    }
-                    
-                    // Bağlantıyı aç
-                    window.open(object.link, '_blank');
+                // İpucu tıklandığında mini oyuna yönlendir
+                clueElement.addEventListener('click', () => {
+                    window.location.href = clue.link;
                 });
                 
-                objectsGrid.appendChild(objectElement);
+                cluesContainer.appendChild(clueElement);
             });
-        }
-        
-        // Modal kapatma
-        closeModalBtn.addEventListener('click', () => {
-            searchModal.classList.remove('active');
-        });
-        
-        // Ses açma-kapatma
-        soundButton.addEventListener('click', () => {
-            isMuted = !isMuted;
-            soundButton.innerHTML = isMuted ? 
-                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>' :
-                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>';
-        });
-        
-        // Aranmış odaları işaretle
-        function markSearchedRooms() {
-            for (const roomId in gameProgress.roomSearches) {
-                const search = gameProgress.roomSearches[roomId];
-                
-                if (search.isSearched) {
-                    const roomElement = document.getElementById(roomId);
-                    if (roomElement) {
-                        roomElement.classList.add('searched');
-                    }
-                }
+            
+            // Eğer ipucu yoksa bilgi ver
+            if (clues.length === 0) {
+                const noClue = document.createElement('p');
+                noClue.textContent = 'Bu odada ilgili bir ipucu bulunamadı.';
+                cluesContainer.appendChild(noClue);
             }
         }
         
-        // Oyun ilerlemesini kaydet
-        function saveGameProgress() {
-            const dataToSave = {
-                ...gameProgress,
-                lastUpdated: Date.now()
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        // Zoom işlevleri
+        function updateTransform() {
+            const activeFloorImage = currentFloor === 1 ? floors[1] : floors[2];
+            activeFloorImage.style.transform = `scale(${currentScale}) translate(${currentTranslateX}px, ${currentTranslateY}px)`;
         }
         
-        // Oyun ilerlemesini yükle
-        function loadGameProgress() {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            
-            if (savedData) {
-                try {
-                    gameProgress = JSON.parse(savedData);
-                } catch (e) {
-                    console.error('Kayıtlı veri yüklenemedi:', e);
-                }
+        function zoomIn() {
+            if (currentScale < 3) {
+                currentScale += 0.2;
+                updateTransform();
             }
         }
         
-        // Yakınlaştırma / Uzaklaştırma İşlemleri
-        const contentArea = document.querySelector('.content-area');
-        let scale = 1;
-        let translateX = 0;
-        let translateY = 0;
-        let isDragging = false;
-        let startX = 0;
-        let startY = 0;
-        let touches = [];
+        function zoomOut() {
+            if (currentScale > 0.5) {
+                currentScale -= 0.2;
+                updateTransform();
+            }
+        }
         
-        // Fareyle yakınlaştırma
-        contentArea.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            
-            const delta = -e.deltaY * 0.01;
-            const newScale = Math.max(0.5, Math.min(3, scale + delta));
-            
-            const rect = contentArea.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const ratio = 1 - newScale / scale;
-            translateX += (x - translateX) * ratio;
-            translateY += (y - translateY) * ratio;
-            
-            updateZoom();
-            scale = newScale;
-        });
+        function resetZoom() {
+            currentScale = 1;
+            currentTranslateX = 0;
+            currentTranslateY = 0;
+            updateTransform();
+        }
         
-        // Dokunma yakınlaştırması
-        contentArea.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                // İki parmak - yakınlaştırma hareketi
-                touches = [
-                    { x: e.touches[0].clientX, y: e.touches[0].clientY },
-                    { x: e.touches[1].clientX, y: e.touches[1].clientY }
-                ];
-            } else if (e.touches.length === 1) {
-                // Tek parmak - sürükleme hareketi
+        // Sürükleme (pan) işlevleri
+        function startDrag(e) {
+            if (currentScale > 1) {
                 isDragging = true;
-                startX = e.touches[0].clientX - translateX;
-                startY = e.touches[0].clientY - translateY;
-            }
-        });
-        
-        contentArea.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            
-            if (e.touches.length === 2) {
-                // Yakınlaştırma hareketi
-                const touch1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-                const touch2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
                 
-                if (touches.length === 2) {
-                    // Mesafeleri hesapla
-                    const oldDistance = Math.hypot(
-                        touches[0].x - touches[1].x,
-                        touches[0].y - touches[1].y
-                    );
-                    const newDistance = Math.hypot(
-                        touch1.x - touch2.x,
-                        touch1.y - touch2.y
-                    );
-                    
-                    // Ölçek değişimini hesapla
-                    const pinchDelta = (newDistance - oldDistance) * 0.01;
-                    const newScale = Math.max(0.5, Math.min(3, scale + pinchDelta));
-                    
-                    // Orta noktayı hesapla
-                    const midX = (touch1.x + touch2.x) / 2;
-                    const midY = (touch1.y + touch2.y) / 2;
-                    
-                    // Element koordinatlarına çevir
-                    const rect = contentArea.getBoundingClientRect();
-                    const elementMidX = midX - rect.left;
-                    const elementMidY = midY - rect.top;
-                    
-                    // Yeni ofsetleri hesapla
-                    const ratio = 1 - newScale / scale;
-                    translateX += (elementMidX - translateX) * ratio;
-                    translateY += (elementMidY - translateY) * ratio;
-                    
-                    scale = newScale;
-                    touches = [touch1, touch2];
-                    updateZoom();
+                if (e.type === "mousedown") {
+                    startX = e.clientX;
+                    startY = e.clientY;
+                } else if (e.type === "touchstart") {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
                 }
-            } else if (e.touches.length === 1 && isDragging) {
-                // Sürükleme hareketi
-                translateX = e.touches[0].clientX - startX;
-                translateY = e.touches[0].clientY - startY;
-                updateZoom();
-            }
-        });
-        
-        contentArea.addEventListener('touchend', () => {
-            isDragging = false;
-            touches = [];
-        });
-        
-        // Yakınlaştırma sıfırlama
-        resetZoomButton.addEventListener('click', () => {
-            scale = 1;
-            translateX = 0;
-            translateY = 0;
-            updateZoom();
-        });
-        
-        // Yakınlaştırma stilini güncelle
-        function updateZoom() {
-            const activeFloor = document.querySelector('.floor-plan.active');
-            if (activeFloor) {
-                activeFloor.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-                activeFloor.style.transformOrigin = 'center';
+                
+                initialTranslateX = currentTranslateX;
+                initialTranslateY = currentTranslateY;
+                
+                floorView.style.cursor = 'grabbing';
             }
         }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            let clientX, clientY;
+            
+            if (e.type === "mousemove") {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            } else if (e.type === "touchmove") {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            
+            const dx = (clientX - startX) / currentScale;
+            const dy = (clientY - startY) / currentScale;
+            
+            currentTranslateX = initialTranslateX + dx;
+            currentTranslateY = initialTranslateY + dy;
+            
+            updateTransform();
+        }
+        
+        function endDrag() {
+            isDragging = false;
+            floorView.style.cursor = 'default';
+        }
+        
+        // Pinch-to-zoom fonksiyonu (mobil)
+        let initialPinchDistance = 0;
+        let initialScale = 1;
+        
+        function handlePinch(e) {
+            e.preventDefault();
+            
+            if (e.touches.length !== 2) return;
+            
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            
+            const distance = Math.hypot(
+                touch1.clientX - touch2.clientX,
+                touch1.clientY - touch2.clientY
+            );
+            
+            if (initialPinchDistance === 0) {
+                initialPinchDistance = distance;
+                initialScale = currentScale;
+                return;
+            }
+            
+            const scaleFactor = distance / initialPinchDistance;
+            currentScale = initialScale * scaleFactor;
+            
+            // Ölçeği sınırla
+            currentScale = Math.min(Math.max(0.5, currentScale), 3);
+            
+            updateTransform();
+        }
+        
+        function handlePinchEnd() {
+            initialPinchDistance = 0;
+        }
+        
+        // Modal dışına tıklayınca kapatma
+        searchModal.addEventListener('click', (e) => {
+            if (e.target === searchModal) {
+                searchModal.style.display = 'none';
+                if (searchInterval) clearInterval(searchInterval);
+            }
+        });
+        
+        // Kat değiştirme butonları
+        floorButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const floor = btn.dataset.floor;
+                switchFloor(floor);
+            });
+        });
+        
+        // Oda tıklama olayları
+        rooms.forEach(room => {
+            room.addEventListener('click', () => {
+                const roomId = room.dataset.room;
+                
+                // Oda zaten tamamlandıysa ipuçlarını göster
+                if (gameState.completedSearches.includes(roomId)) {
+                    currentRoomElement.textContent = room.title;
+                    searchTimer.style.display = 'none';
+                    searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
+                    createClues(roomId);
+                    cluesContainer.style.display = 'flex';
+                    searchModal.style.display = 'flex';
+                } else {
+                    // Oda henüz tamamlanmadıysa aramayı başlat
+                    startSearch(roomId);
+                }
+            });
+        });
+        
+        // Zoom butonları
+        zoomInBtn.addEventListener('click', zoomIn);
+        zoomOutBtn.addEventListener('click', zoomOut);
+        zoomResetBtn.addEventListener('click', resetZoom);
+        
+        // Sürükleme olayları
+        floorView.addEventListener('mousedown', startDrag);
+        floorView.addEventListener('mousemove', drag);
+        floorView.addEventListener('mouseup', endDrag);
+        floorView.addEventListener('mouseleave', endDrag);
+        
+        // Mobil dokunma olayları
+        floorView.addEventListener('touchstart', startDrag);
+        floorView.addEventListener('touchmove', drag);
+        floorView.addEventListener('touchend', endDrag);
+        
+        // Pinch-to-zoom
+        floorView.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                initialPinchDistance = 0;
+            }
+        }, { passive: false });
+        
+        floorView.addEventListener('touchmove', handlePinch, { passive: false });
+        floorView.addEventListener('touchend', handlePinchEnd);
+        
+        // Varsayılan olarak 1. katı göster
+        switchFloor(1);
     </script>
 </body>
-</html>
+</html> 
