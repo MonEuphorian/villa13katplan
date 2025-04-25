@@ -551,16 +551,43 @@
             }, {passive: false});
         }
         
-        // Service Worker Kaydı
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js').then(function(registration) {
-                    console.log('ServiceWorker kaydı başarılı: ', registration.scope);
-                }, function(err) {
-                    console.log('ServiceWorker kaydı başarısız: ', err);
-                });
-            });
+        // Service Worker Kaydı - güvenli şekilde
+        function initServiceWorker() {
+            try {
+                const hasServiceWorker = 'serviceWorker' in navigator;
+                const hasPushManager = 'PushManager' in window;
+                const hasNotification = typeof Notification !== 'undefined';
+                
+                if (hasServiceWorker && hasPushManager) {
+                    window.addEventListener('load', function() {
+                        navigator.serviceWorker.register('sw.js').then(function(registration) {
+                            console.log('ServiceWorker kaydı başarılı: ', registration.scope);
+                            
+                            // Bildirim izni iste (güvenli)
+                            if (hasNotification) {
+                                Notification.requestPermission().then(function(permission) {
+                                    if (permission === 'granted') {
+                                        console.log('Bildirim izni verildi');
+                                    }
+                                }).catch(function(err) {
+                                    console.log('Bildirim izni hatası (önemsiz):', err);
+                                });
+                            }
+                        }, function(err) {
+                            console.log('ServiceWorker kaydı başarısız: ', err);
+                        });
+                    });
+                } else {
+                    console.log('Service Worker veya Push API desteklenmiyor. Önemli değil, uygulama çalışmaya devam edecek.');
+                }
+            } catch (err) {
+                console.log('Service Worker başlatma hatası (önemsiz):', err);
+                // Sessizce devam et, kullanıcıya gösterme
+            }
         }
+        
+        // Service Worker'ı başlat
+        initServiceWorker();
         
         // Ekran Uyanık Tutma API'si
         let wakeLock = null;
@@ -613,8 +640,12 @@
             // Oyuncu adını göster
             document.getElementById('playerNameDisplay').textContent = playerName;
             
-            // Ekranı uyanık tutmayı dene
-            requestWakeLock();
+            // Ekranı uyanık tutmayı dene (güvenli şekilde)
+            try {
+                requestWakeLock();
+            } catch (err) {
+                console.log("WakeLock hatası (önemsiz):", err);
+            }
             
             // Oyun sayacını başlat
             startGameTimer();
@@ -648,8 +679,12 @@
                 document.getElementById('splashScreen').style.display = 'none';
                 document.getElementById('gameContainer').style.display = 'block';
                 
-                // Ekranı uyanık tutmayı dene
-                requestWakeLock();
+                // Ekranı uyanık tutmayı dene (güvenli)
+                try {
+                    requestWakeLock();
+                } catch (err) {
+                    console.log("WakeLock hatası (önemsiz):", err);
+                }
                 
                 // Oyun sayacını başlat
                 startGameTimer();
@@ -664,8 +699,12 @@
             // Sayfa görünürlük değişikliğini izle (sekme/uygulama değiştirme, vb.)
             document.addEventListener('visibilitychange', function() {
                 if (document.visibilityState === 'visible') {
-                    // Ekranı tekrar kilitle
-                    requestWakeLock();
+                    // Ekranı tekrar kilitle (güvenli)
+                    try {
+                        requestWakeLock();
+                    } catch (err) {
+                        console.log("WakeLock hatası (önemsiz):", err);
+                    }
                     
                     // Aramaları kontrol et
                     checkPendingSearches();
@@ -961,39 +1000,48 @@
                 // İlk tick'i başlat
                 searchInterval = setTimeout(tick, 1000);
                 
-                // Bildirim gönder (mobil için)
-                if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                // Bildirim gönder (mobil için) - Güvenli kontrol ile
+                try {
+                    const hasNotificationAPI = typeof Notification !== 'undefined';
                     const roomName = document.querySelector(`.room[data-room="${roomId}"]`).title;
                     
-                    // Arama başlangıç bildirimi
-                    setTimeout(() => {
-                        try {
-                            navigator.serviceWorker.ready.then(function(registration) {
-                                registration.showNotification('Villa13 - Arama Başladı', {
-                                    body: `${roomName} araması başladı.`,
-                                    icon: 'https://placehold.co/192x192/333/white?text=V13',
-                                    vibrate: [200, 100, 200]
-                                });
-                            });
-                        } catch (err) {
-                            console.error("Bildirim hatası:", err);
+                    if (hasNotificationAPI && 'serviceWorker' in navigator) {
+                        // Bildirim izni kontrolü
+                        if (Notification.permission === 'granted') {
+                            // Arama başlangıç bildirimi
+                            setTimeout(() => {
+                                try {
+                                    navigator.serviceWorker.ready.then(function(registration) {
+                                        registration.showNotification('Villa13 - Arama Başladı', {
+                                            body: `${roomName} araması başladı.`,
+                                            icon: 'https://placehold.co/192x192/333/white?text=V13',
+                                            vibrate: [200, 100, 200]
+                                        });
+                                    });
+                                } catch (err) {
+                                    console.log("Bildirim gönderme hatası (önemsiz):", err);
+                                }
+                            }, 1000);
+                            
+                            // Arama bitince bildirim
+                            setTimeout(() => {
+                                try {
+                                    navigator.serviceWorker.ready.then(function(registration) {
+                                        registration.showNotification('Villa13 - Arama Tamamlandı', {
+                                            body: `${roomName} araması tamamlandı! İpuçlarını inceleyebilirsiniz.`,
+                                            icon: 'https://placehold.co/192x192/333/white?text=V13',
+                                            vibrate: [200, 100, 200, 100, 200]
+                                        });
+                                    });
+                                } catch (err) {
+                                    console.log("Bildirim gönderme hatası (önemsiz):", err);
+                                }
+                            }, timeLeft * 1000);
                         }
-                    }, 1000);
-                    
-                    // Arama bitince bildirim
-                    setTimeout(() => {
-                        try {
-                            navigator.serviceWorker.ready.then(function(registration) {
-                                registration.showNotification('Villa13 - Arama Tamamlandı', {
-                                    body: `${roomName} araması tamamlandı! İpuçlarını inceleyebilirsiniz.`,
-                                    icon: 'https://placehold.co/192x192/333/white?text=V13',
-                                    vibrate: [200, 100, 200, 100, 200]
-                                });
-                            });
-                        } catch (err) {
-                            console.error("Bildirim hatası:", err);
-                        }
-                    }, timeLeft * 1000);
+                    }
+                } catch (err) {
+                    // Notification API hatalarını sessizce yoksay - kullanıcıya gösterme
+                    console.log("Notification API desteklenmiyor veya erişilemedi (önemsiz):", err);
                 }
             } catch (err) {
                 console.error("startSearch hatası:", err);
@@ -1471,86 +1519,111 @@
     <!-- Service Worker Kaydı İçin Script -->
     <script>
     // service-worker.js dosyasını oluşturmak için kod
-    if ('serviceWorker' in navigator) {
-        // Sayfa yüklendiğinde sw.js dosyasını oluştur
-        window.addEventListener('load', function() {
-            const swContent = `
-            // Service Worker
-            const CACHE_NAME = 'villa13-cache-v1';
-            const urlsToCache = [
-                '/',
-                '/villa13.html',
-                '/villa_1kat.jpg',
-                '/villa_2kat.jpg'
-            ];
-            
-            self.addEventListener('install', function(event) {
-                event.waitUntil(
-                    caches.open(CACHE_NAME)
-                        .then(function(cache) {
-                            console.log('Cache açıldı');
-                            return cache.addAll(urlsToCache);
-                        })
-                );
-            });
-            
-            self.addEventListener('fetch', function(event) {
-                event.respondWith(
-                    caches.match(event.request)
-                        .then(function(response) {
-                            if (response) {
-                                return response;
-                            }
-                            return fetch(event.request);
-                        }
-                    )
-                );
-            });
-            
-            self.addEventListener('push', function(event) {
-                const title = 'Villa13';
-                const options = {
-                    body: event.data.text(),
-                    icon: 'https://placehold.co/192x192/333/white?text=V13',
-                    vibrate: [200, 100, 200]
-                };
+    function createServiceWorkerScript() {
+        try {
+            // Service Worker API kontrolü
+            if (!('serviceWorker' in navigator)) {
+                console.log('Service Worker desteklenmiyor. Normal şekilde devam ediliyor.');
+                return;
+            }
+
+            // Sayfa yüklendiğinde sw.js dosyasını oluştur
+            window.addEventListener('load', function() {
+                const swContent = `
+                // Service Worker
+                const CACHE_NAME = 'villa13-cache-v1';
+                const urlsToCache = [
+                    '/',
+                    '/villa13.html',
+                    '/villa_1kat.jpg',
+                    '/villa_2kat.jpg'
+                ];
                 
-                event.waitUntil(
-                    self.registration.showNotification(title, options)
-                );
-            });
-            
-            self.addEventListener('notificationclick', function(event) {
-                event.notification.close();
-                event.waitUntil(
-                    clients.openWindow('https://moneuphorian.github.io/villa13.html')
-                );
-            });
-            `;
-            
-            // Blob oluştur
-            const blob = new Blob([swContent], {type: 'application/javascript'});
-            
-            // Blob URL oluştur
-            const blobURL = URL.createObjectURL(blob);
-            
-            // Service Worker'ı kaydet
-            navigator.serviceWorker.register(blobURL)
-                .then(function(registration) {
-                    console.log('ServiceWorker kaydı başarılı:', registration.scope);
-                    
-                    // Bildirim izni iste
-                    Notification.requestPermission().then(function(permission) {
-                        if (permission === 'granted') {
-                            console.log('Bildirim izni verildi');
-                        }
-                    });
-                })
-                .catch(function(error) {
-                    console.log('ServiceWorker kaydı başarısız:', error);
+                self.addEventListener('install', function(event) {
+                    event.waitUntil(
+                        caches.open(CACHE_NAME)
+                            .then(function(cache) {
+                                console.log('Cache açıldı');
+                                return cache.addAll(urlsToCache);
+                            })
+                    );
                 });
-        });
+                
+                self.addEventListener('fetch', function(event) {
+                    event.respondWith(
+                        caches.match(event.request)
+                            .then(function(response) {
+                                if (response) {
+                                    return response;
+                                }
+                                return fetch(event.request);
+                            }
+                        )
+                    );
+                });
+                
+                self.addEventListener('push', function(event) {
+                    const title = 'Villa13';
+                    const options = {
+                        body: event.data ? event.data.text() : 'Yeni bir bildirim var!',
+                        icon: 'https://placehold.co/192x192/333/white?text=V13',
+                        vibrate: [200, 100, 200]
+                    };
+                    
+                    event.waitUntil(
+                        self.registration.showNotification(title, options)
+                    );
+                });
+                
+                self.addEventListener('notificationclick', function(event) {
+                    event.notification.close();
+                    event.waitUntil(
+                        clients.openWindow('https://moneuphorian.github.io/villa13.html')
+                    );
+                });
+                `;
+                
+                try {
+                    // Blob oluştur
+                    const blob = new Blob([swContent], {type: 'application/javascript'});
+                    
+                    // Blob URL oluştur
+                    const blobURL = URL.createObjectURL(blob);
+                    
+                    // Service Worker'ı kaydet
+                    navigator.serviceWorker.register(blobURL)
+                        .then(function(registration) {
+                            console.log('ServiceWorker kaydı başarılı:', registration.scope);
+                            
+                            // Bildirim izni iste (güvenli)
+                            if (typeof Notification !== 'undefined') {
+                                try {
+                                    Notification.requestPermission().then(function(permission) {
+                                        if (permission === 'granted') {
+                                            console.log('Bildirim izni verildi');
+                                        }
+                                    }).catch(err => {
+                                        console.log('Bildirim izni hatası (önemsiz):', err);
+                                    });
+                                } catch (err) {
+                                    console.log('Notification API hatası (önemsiz):', err);
+                                }
+                            }
+                        })
+                        .catch(function(error) {
+                            console.log('ServiceWorker kaydı başarısız (önemsiz):', error);
+                        });
+                } catch (err) {
+                    console.log('SW oluşturma hatası (önemsiz):', err);
+                }
+            });
+        } catch (err) {
+            console.log('Service Worker skripti hatası (önemsiz):', err);
+        }
     }
+    
+    // Service Worker oluşturma işlemini başlat
+    createServiceWorkerScript();
     </script>
 </body>
 </html> 
