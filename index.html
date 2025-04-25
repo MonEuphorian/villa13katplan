@@ -36,6 +36,104 @@
             text-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
         }
         
+        /* Giriş Ekranı */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://placehold.co/1200x800/333/white?text=Villa13');
+            background-size: cover;
+            background-position: center;
+            padding: 20px;
+        }
+        
+        .splash-content {
+            background-color: rgba(10, 10, 10, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(255, 77, 77, 0.3);
+        }
+        
+        .splash-title {
+            color: #ff4d4d;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+        }
+        
+        .splash-description {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .player-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .player-form input {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: #333;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .start-game-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .start-game-btn:hover {
+            background-color: #ff3333;
+            transform: scale(1.05);
+        }
+        
+        .game-timer {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            z-index: 100;
+        }
+        
+        .player-info {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 1rem;
+            z-index: 100;
+        }
+        
         /* Kat Görüntüleme Alanı */
         .floor-view {
             position: relative;
@@ -253,6 +351,27 @@
                 padding: 10px 20px;
                 font-size: 1rem;
             }
+            
+            .clue-modal-content {
+                max-width: 90%;
+                padding: 20px;
+            }
+            
+            .clue-title {
+                font-size: 1.5rem;
+            }
+            
+            .clue-description {
+                font-size: 1rem;
+            }
+            
+            .splash-title {
+                font-size: 2rem;
+            }
+            
+            .splash-description {
+                font-size: 1rem;
+            }
         }
         
         /* Animasyonlar */
@@ -326,25 +445,29 @@
             background-color: #ff3333;
             transform: scale(1.05);
         }
-        
-        @media (max-width: 768px) {
-            .clue-modal-content {
-                max-width: 90%;
-                padding: 20px;
-            }
-            
-            .clue-title {
-                font-size: 1.5rem;
-            }
-            
-            .clue-description {
-                font-size: 1rem;
-            }
-        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Giriş Ekranı -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="splash-content">
+            <h1 class="splash-title">Villa13 - Cinayet Keşif Oyunu</h1>
+            <p class="splash-description">
+                Villa 13'teki esrarengiz cinayeti çözmek için tüm odaları araştırmanız ve ipuçlarını bulmanız gerekiyor. 
+                Her odayı arama süresi farklıdır. Oyun ilerleyişiniz otomatik olarak kaydedilecektir.
+            </p>
+            <form class="player-form" id="playerForm">
+                <input type="text" id="playerName" placeholder="Dedektif Adınız" required minlength="3">
+                <button type="submit" class="start-game-btn">OYUNA BAŞLA</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Oyun Zamanlayıcı ve Kullanıcı Bilgisi -->
+    <div class="game-timer" id="gameTimer">Süre: <span id="totalGameTime">00:00:00</span></div>
+    <div class="player-info" id="playerInfo">Dedektif: <span id="playerNameDisplay">Bilinmiyor</span></div>
+
+    <div class="container" id="gameContainer" style="display: none;">
         <h1>Villa13 - Cinayet Keşif Oyunu</h1>
         
         <div class="floor-nav">
@@ -413,6 +536,148 @@
     </div>
     
     <script>
+        // Service Worker Kaydı
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(function(registration) {
+                    console.log('ServiceWorker kaydı başarılı: ', registration.scope);
+                }, function(err) {
+                    console.log('ServiceWorker kaydı başarısız: ', err);
+                });
+            });
+        }
+        
+        // Ekran Uyanık Tutma API'si
+        let wakeLock = null;
+        
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Ekran kilidi serbest bırakıldı');
+                    });
+                    console.log('Ekran kilidi aktif');
+                }
+            } catch (err) {
+                console.error(`Ekran kilidi hatası: ${err.name}, ${err.message}`);
+            }
+        }
+        
+        // LocalStorage Anahtarları
+        const PLAYER_KEY = 'villa13_player';
+        const STORAGE_KEY = 'villa13_game_state';
+        const GAME_START_KEY = 'villa13_game_start';
+        
+        // Oyun başlangıç saati
+        let gameStartTime = null;
+        let gameTimer = null;
+        
+        // Giriş formu işleme
+        document.getElementById('playerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const playerName = document.getElementById('playerName').value.trim();
+            if (playerName.length < 3) {
+                alert('Lütfen en az 3 karakter uzunluğunda bir isim girin.');
+                return;
+            }
+            
+            // Oyuncu adını kaydet
+            localStorage.setItem(PLAYER_KEY, playerName);
+            
+            // Oyun başlangıç zamanını kaydet
+            if (!localStorage.getItem(GAME_START_KEY)) {
+                const now = new Date().getTime();
+                localStorage.setItem(GAME_START_KEY, now);
+                gameStartTime = now;
+            } else {
+                gameStartTime = parseInt(localStorage.getItem(GAME_START_KEY));
+            }
+            
+            // Oyuncu adını göster
+            document.getElementById('playerNameDisplay').textContent = playerName;
+            
+            // Ekranı uyanık tutmayı dene
+            requestWakeLock();
+            
+            // Oyun sayacını başlat
+            startGameTimer();
+            
+            // Giriş ekranını gizle, oyun ekranını göster
+            document.getElementById('splashScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            
+            // Oyun durumunu yükle
+            loadGameState();
+            
+            // Kesintiye uğramış aramaları kontrol et
+            checkPendingSearches();
+        });
+        
+        // Sayfa yüklendiğinde oyuncu kontrolü
+        window.addEventListener('load', function() {
+            const savedPlayer = localStorage.getItem(PLAYER_KEY);
+            const savedGameStart = localStorage.getItem(GAME_START_KEY);
+            
+            // Eğer daha önce oyuna başlamışsa
+            if (savedPlayer && savedGameStart) {
+                document.getElementById('playerName').value = savedPlayer;
+                document.getElementById('playerNameDisplay').textContent = savedPlayer;
+                gameStartTime = parseInt(savedGameStart);
+                
+                // Otomatik olarak oyunu başlat
+                document.getElementById('splashScreen').style.display = 'none';
+                document.getElementById('gameContainer').style.display = 'block';
+                
+                // Ekranı uyanık tutmayı dene
+                requestWakeLock();
+                
+                // Oyun sayacını başlat
+                startGameTimer();
+                
+                // Oyun durumunu yükle
+                loadGameState();
+                
+                // Kesintiye uğramış aramaları kontrol et
+                checkPendingSearches();
+            }
+            
+            // Sayfa görünürlük değişikliğini izle (sekme/uygulama değiştirme, vb.)
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    // Ekranı tekrar kilitle
+                    requestWakeLock();
+                    
+                    // Aramaları kontrol et
+                    checkPendingSearches();
+                    
+                    // Oyun süresini güncelle
+                    updateGameTime();
+                }
+            });
+        });
+        
+        // Oyun Sayacı
+        function startGameTimer() {
+            updateGameTime();
+            gameTimer = setInterval(updateGameTime, 1000);
+        }
+        
+        function updateGameTime() {
+            if (!gameStartTime) return;
+            
+            const now = new Date().getTime();
+            const elapsedTime = now - gameStartTime;
+            
+            const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
+            const minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
+            
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('totalGameTime').textContent = timeString;
+        }
+        
         // Oyun değişkenleri
         const floors = {
             1: document.getElementById('floor1'),
@@ -443,131 +708,46 @@
         // Arama ve ipuçları
         let searchInterval;
         const roomSearchTimes = {
-            'salon': 30,
-            'mutfak': 15,
-            'calisma': 20,
-            'yemek': 25,
-            'nalan': 20,
-            'elif': 25,
-            'asli': 30,
-            'sercan': 20,
-            'fikret': 35
+            'salon': 15 * 60, // 15 dakika (saniye cinsinden)
+            'mutfak': 8 * 60, // 8 dakika
+            'calisma': 10 * 60, // 10 dakika
+            'yemek': 12 * 60, // 12 dakika
+            'nalan': 10 * 60, // 10 dakika
+            'elif': 12 * 60, // 12 dakika
+            'asli': 15 * 60, // 15 dakika
+            'sercan': 10 * 60, // 10 dakika
+            'fikret': 18 * 60 // 18 dakika
         };
         
-        // İpucu tanımlamaları (oda-ipucu eşleşmeleri)
-        const roomClues = {
-            'salon': [
-                { 
-                    name: 'Kanepe', 
-                    image: 'https://placehold.co/150x150/333/white?text=Kanepe', 
-                    link: 'minigame1.html',
-                    description: 'Salondaki kanepenin yastıklarının altında bazı eşyalar bulundu. Kanepe üzerindeki kan izleri ve diğer lekelerin detaylı incelemesi gerekiyor. Kanepede bulunan uzun sarı saçlar kime ait olabilir?'
-                },
-                { 
-                    name: 'Televizyon', 
-                    image: 'https://placehold.co/150x150/333/white?text=TV', 
-                    link: 'minigame2.html',
-                    description: 'Televizyonun üzerinde parmak izleri tespit edildi. Ayrıca televizyondaki güvenlik kamerası kayıtları cinayetin işlendiği gece hakkında önemli bilgiler içeriyor olabilir. Kayıtları incelemek için şifre gerekiyor.'
-                }
-            ],
-            'mutfak': [
-                { 
-                    name: 'Buzdolabı', 
-                    image: 'https://placehold.co/150x150/333/white?text=Buzdolabı', 
-                    link: 'minigame3.html',
-                    description: 'Buzdolabında yarım kalmış bir şişe şarap ve iki kadeh bulundu. Şişenin üzerinde parmak izleri var. Buzdolabının içinde ayrıca şüpheli bir ilaç şişesi tespit edildi. İncelenmesi gerekiyor.'
-                },
-                { 
-                    name: 'Bıçak Çekmecesi', 
-                    image: 'https://placehold.co/150x150/333/white?text=Bıçak', 
-                    link: 'minigame4.html',
-                    description: 'Mutfak çekmecesindeki bıçak setinden bir adet ekmek bıçağı eksik. Diğer bıçakların üzerinde kan izleri kontrolü yapılmalı. Çekmecenin kulpunda birden fazla kişiye ait parmak izleri tespit edildi.'
-                }
-            ],
-            'calisma': [
-                { 
-                    name: 'Kasa', 
-                    image: 'https://placehold.co/150x150/333/white?text=Kasa', 
-                    link: 'kasa.html',
-                    description: 'Çalışma odasındaki kasa, Fikret Bey\'e ait. İçinde önemli belgeler ve değerli eşyalar olduğu biliniyor. Kasa şifresini bulmak için odadaki ipuçlarını incelemen gerekiyor. Kasanın üzerinde parmak izleri bulundu.'
-                },
-                { 
-                    name: 'Bilgisayar', 
-                    image: 'https://placehold.co/150x150/333/white?text=PC', 
-                    link: 'minigame5.html',
-                    description: 'Bilgisayarda Fikret Bey\'in son dönemde yaptığı araştırmalar ve yazışmalar bulunuyor. E-postalarında şüpheli yazışmalar dikkat çekiyor. Bilgisayar şifreli, ancak masadaki notlar şifreyi çözmek için ipuçları içeriyor.'
-                }
-            ],
-            'yemek': [
-                { 
-                    name: 'Çekmece', 
-                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
-                    link: 'minigame6.html',
-                    description: 'Yemek odasındaki çekmecede bir miras belgesi bulundu. Belge üzerinde yapılan değişiklikler dikkat çekici. Çekmecenin arka kısmında gizlenmiş bir not bulundu. Not, ailenin bir sırrını ortaya çıkarabilir.'
-                }
-            ],
-            'nalan': [
-                { 
-                    name: 'Dolap', 
-                    image: 'https://placehold.co/150x150/333/white?text=Dolap', 
-                    link: 'minigame7.html',
-                    description: 'Nalan\'ın dolabında yabancı bir erkek parfümü ve bazı şüpheli belgeler bulundu. Dolabın arka kısmında gizlenmiş bir günlük var. Günlükte önemli ipuçları olabilir.'
-                },
-                { 
-                    name: 'Yatağın Altı', 
-                    image: 'https://placehold.co/150x150/333/white?text=Yatak', 
-                    link: 'minigame8.html',
-                    description: 'Yatağın altında gizlenmiş bir çanta içinde yüklü miktarda para bulundu. Paranın kaynağı şüpheli. Ayrıca bir silah kutusu da tespit edildi, ancak içi boştu.'
-                }
-            ],
-            'elif': [
-                { 
-                    name: 'Makyaj Masası', 
-                    image: 'https://placehold.co/150x150/333/white?text=Makyaj', 
-                    link: 'minigame9.html',
-                    description: 'Elif\'in makyaj masasında birkaç fotoğraf ve bir mektup bulundu. Fotoğraflarda ailede olmayan bir kişi görülüyor. Makyaj malzemelerinin arasında gizlenmiş bir USB bellek dikkat çekiyor.'
-                }
-            ],
-            'asli': [
-                { 
-                    name: 'Kitaplık', 
-                    image: 'https://placehold.co/150x150/333/white?text=Kitaplık', 
-                    link: 'minigame10.html',
-                    description: 'Aslı\'nın kitaplığında zehirler ve toksikoloji hakkında birçok kitap bulundu. Kitapların bazı sayfaları işaretlenmiş durumda. "Tespit Edilemeyen Zehirler" konulu kitaptaki notlar özellikle dikkat çekiyor.'
-                },
-                { 
-                    name: 'Çekmece', 
-                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
-                    link: 'minigame11.html',
-                    description: 'Aslı\'nın çekmecesinde tıp fakültesinden arkadaşlarıyla çekilmiş fotoğraflar ve bazı ilaç prospektüsleri bulundu. Ayrıca laboratuvar erişimi için bir kart ve şifreli notlar dikkat çekiyor.'
-                }
-            ],
-            'sercan': [
-                { 
-                    name: 'Spor Çantası', 
-                    image: 'https://placehold.co/150x150/333/white?text=Çanta', 
-                    link: 'minigame12.html',
-                    description: 'Sercan\'ın spor çantasında normalde spor salonunda kullanılmayacak bazı eşyalar tespit edildi. Çantanın gizli bölmesinde borç senetleri ve bir tehdit mektubu bulundu. Ayrıca ekmek bıçağına benzeyen bir bıçak da dikkat çekiyor.'
-                }
-            ],
-            'fikret': [
-                { 
-                    name: 'Gizli Bölme', 
-                    image: 'https://placehold.co/150x150/333/white?text=Gizli', 
-                    link: 'minigame13.html',
-                    description: 'Fikret\'in odasında duvarın arkasında bir gizli bölme keşfedildi. Bölmede aile üyelerine ait özel bilgiler, şantaj belgeleri ve büyük miktarda nakit para bulunuyor. Belgelerin bazıları üzerinde kan lekeleri var.'
-                }
-            ]
-        };
+        // DEV TEST İÇİN KISA SÜRELER
+        // Gerçek oyun için yukarıdaki süreleri kullanın
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            for (let room in roomSearchTimes) {
+                roomSearchTimes[room] = Math.ceil(roomSearchTimes[room] / 60); // Saniye cinsinden test süreleri
+            }
+        }
         
-        // LocalStorage anahtar adı
-        const STORAGE_KEY = 'villa13_game_state';
+        // Mevcut oyun durumu
+        let gameState = {
+            searchedRooms: {},
+            completedSearches: []
+        };
         
         // Oyun durumunu localStorage'dan yükleme
         function loadGameState() {
             const savedState = localStorage.getItem(STORAGE_KEY);
             if (savedState) {
-                return JSON.parse(savedState);
+                try {
+                    gameState = JSON.parse(savedState);
+                    console.log('Oyun durumu yüklendi:', gameState);
+                    return gameState;
+                } catch (e) {
+                    console.error('Oyun durumu yüklenirken hata:', e);
+                    return {
+                        searchedRooms: {},
+                        completedSearches: []
+                    };
+                }
             }
             return {
                 searchedRooms: {},
@@ -577,16 +757,13 @@
         
         // Oyun durumunu localStorage'a kaydetme
         function saveGameState(state) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                console.log('Oyun durumu kaydedildi:', state);
+            } catch (e) {
+                console.error('Oyun durumu kaydedilirken hata:', e);
+            }
         }
-        
-        // Mevcut oyun durumu
-        let gameState = loadGameState();
-        
-        // Sayfa yüklendiğinde kesintiye uğramış aramaları kontrol et
-        window.addEventListener('load', () => {
-            checkPendingSearches();
-        });
         
         // Aramaları kontrol et ve devam ettir
         function checkPendingSearches() {
@@ -615,6 +792,10 @@
                         gameState.completedSearches.push(roomId);
                         saveGameState(gameState);
                     }
+                } else if (currentTime >= endTime && !gameState.completedSearches.includes(roomId)) {
+                    // Süre dolmuşsa ve henüz tamamlananlara eklenmemişse
+                    gameState.completedSearches.push(roomId);
+                    saveGameState(gameState);
                 }
             }
         }
@@ -658,7 +839,12 @@
             
             // Oda adını ve süreyi güncelle
             currentRoomElement.textContent = roomName;
-            document.getElementById('searchTime').textContent = searchTime;
+            
+            // Saniye formatını dakika:saniye formatına çevir
+            const minutes = Math.floor(searchTime / 60);
+            const seconds = searchTime % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('searchTime').textContent = timeString;
             
             // İpuçları bölümünü gizle
             cluesContainer.style.display = 'none';
@@ -694,22 +880,61 @@
                     startTime: new Date().getTime()
                 };
                 saveGameState(gameState);
+                
+                // Bildirim gönder
+                if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                    const roomName = document.querySelector(`.room[data-room="${roomId}"]`).title;
+                    const minutes = Math.floor(timeLeft / 60);
+                    
+                    // 5 saniye sonra bildirim gönder
+                    setTimeout(() => {
+                        navigator.serviceWorker.ready.then(function(registration) {
+                            registration.showNotification('Villa13 - Arama Başladı', {
+                                body: `${roomName} araması başladı. ${minutes} dakika sonra tamamlanacak.`,
+                                icon: 'https://placehold.co/192x192/333/white?text=V13',
+                                vibrate: [200, 100, 200]
+                            });
+                        });
+                    }, 5000);
+                    
+                    // Arama bitince bildirim gönder
+                    const searchEndTime = new Date().getTime() + (timeLeft * 1000);
+                    const timeUntilEnd = searchEndTime - new Date().getTime();
+                    
+                    setTimeout(() => {
+                        navigator.serviceWorker.ready.then(function(registration) {
+                            registration.showNotification('Villa13 - Arama Tamamlandı', {
+                                body: `${roomName} araması tamamlandı! İpuçlarını inceleyebilirsiniz.`,
+                                icon: 'https://placehold.co/192x192/333/white?text=V13',
+                                vibrate: [200, 100, 200, 100, 200]
+                            });
+                        });
+                    }, timeUntilEnd);
+                }
             }
             
             // Timer'ı ayarla
             const searchTimer = document.getElementById('searchTimer');
-            searchTimer.textContent = timeLeft;
+            updateSearchTimerDisplay(timeLeft);
             searchTimer.classList.add('pulse');
             
             searchInterval = setInterval(() => {
                 timeLeft--;
-                searchTimer.textContent = timeLeft;
+                updateSearchTimerDisplay(timeLeft);
                 
                 if (timeLeft <= 0) {
                     clearInterval(searchInterval);
                     searchCompleted(roomId);
                 }
             }, 1000);
+        }
+        
+        // Timer ekranını dakika:saniye formatında güncelle
+        function updateSearchTimerDisplay(timeInSeconds) {
+            const minutes = Math.floor(timeInSeconds / 60);
+            const seconds = timeInSeconds % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('searchTimer').textContent = timeString;
         }
         
         // Arama tamamlandığında çağrılacak fonksiyon
@@ -1039,6 +1264,197 @@
         
         // Varsayılan olarak 1. katı göster
         switchFloor(1);
+
+        // İpucu tanımlamaları (oda-ipucu eşleşmeleri)
+        const roomClues = {
+            'salon': [
+                { 
+                    name: 'Kanepe', 
+                    image: 'https://placehold.co/150x150/333/white?text=Kanepe', 
+                    link: 'minigame1.html',
+                    description: 'Salondaki kanepenin yastıklarının altında bazı eşyalar bulundu. Kanepe üzerindeki kan izleri ve diğer lekelerin detaylı incelemesi gerekiyor. Kanepede bulunan uzun sarı saçlar kime ait olabilir?'
+                },
+                { 
+                    name: 'Televizyon', 
+                    image: 'https://placehold.co/150x150/333/white?text=TV', 
+                    link: 'minigame2.html',
+                    description: 'Televizyonun üzerinde parmak izleri tespit edildi. Ayrıca televizyondaki güvenlik kamerası kayıtları cinayetin işlendiği gece hakkında önemli bilgiler içeriyor olabilir. Kayıtları incelemek için şifre gerekiyor.'
+                }
+            ],
+            'mutfak': [
+                { 
+                    name: 'Buzdolabı', 
+                    image: 'https://placehold.co/150x150/333/white?text=Buzdolabı', 
+                    link: 'minigame3.html',
+                    description: 'Buzdolabında yarım kalmış bir şişe şarap ve iki kadeh bulundu. Şişenin üzerinde parmak izleri var. Buzdolabının içinde ayrıca şüpheli bir ilaç şişesi tespit edildi. İncelenmesi gerekiyor.'
+                },
+                { 
+                    name: 'Bıçak Çekmecesi', 
+                    image: 'https://placehold.co/150x150/333/white?text=Bıçak', 
+                    link: 'minigame4.html',
+                    description: 'Mutfak çekmecesindeki bıçak setinden bir adet ekmek bıçağı eksik. Diğer bıçakların üzerinde kan izleri kontrolü yapılmalı. Çekmecenin kulpunda birden fazla kişiye ait parmak izleri tespit edildi.'
+                }
+            ],
+            'calisma': [
+                { 
+                    name: 'Kasa', 
+                    image: 'https://placehold.co/150x150/333/white?text=Kasa', 
+                    link: 'kasa.html',
+                    description: 'Çalışma odasındaki kasa, Fikret Bey\'e ait. İçinde önemli belgeler ve değerli eşyalar olduğu biliniyor. Kasa şifresini bulmak için odadaki ipuçlarını incelemen gerekiyor. Kasanın üzerinde parmak izleri bulundu.'
+                },
+                { 
+                    name: 'Bilgisayar', 
+                    image: 'https://placehold.co/150x150/333/white?text=PC', 
+                    link: 'minigame5.html',
+                    description: 'Bilgisayarda Fikret Bey\'in son dönemde yaptığı araştırmalar ve yazışmalar bulunuyor. E-postalarında şüpheli yazışmalar dikkat çekiyor. Bilgisayar şifreli, ancak masadaki notlar şifreyi çözmek için ipuçları içeriyor.'
+                }
+            ],
+            'yemek': [
+                { 
+                    name: 'Çekmece', 
+                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
+                    link: 'minigame6.html',
+                    description: 'Yemek odasındaki çekmecede bir miras belgesi bulundu. Belge üzerinde yapılan değişiklikler dikkat çekici. Çekmecenin arka kısmında gizlenmiş bir not bulundu. Not, ailenin bir sırrını ortaya çıkarabilir.'
+                }
+            ],
+            'nalan': [
+                { 
+                    name: 'Dolap', 
+                    image: 'https://placehold.co/150x150/333/white?text=Dolap', 
+                    link: 'minigame7.html',
+                    description: 'Nalan\'ın dolabında yabancı bir erkek parfümü ve bazı şüpheli belgeler bulundu. Dolabın arka kısmında gizlenmiş bir günlük var. Günlükte önemli ipuçları olabilir.'
+                },
+                { 
+                    name: 'Yatağın Altı', 
+                    image: 'https://placehold.co/150x150/333/white?text=Yatak', 
+                    link: 'minigame8.html',
+                    description: 'Yatağın altında gizlenmiş bir çanta içinde yüklü miktarda para bulundu. Paranın kaynağı şüpheli. Ayrıca bir silah kutusu da tespit edildi, ancak içi boştu.'
+                }
+            ],
+            'elif': [
+                { 
+                    name: 'Makyaj Masası', 
+                    image: 'https://placehold.co/150x150/333/white?text=Makyaj', 
+                    link: 'minigame9.html',
+                    description: 'Elif\'in makyaj masasında birkaç fotoğraf ve bir mektup bulundu. Fotoğraflarda ailede olmayan bir kişi görülüyor. Makyaj malzemelerinin arasında gizlenmiş bir USB bellek dikkat çekiyor.'
+                }
+            ],
+            'asli': [
+                { 
+                    name: 'Kitaplık', 
+                    image: 'https://placehold.co/150x150/333/white?text=Kitaplık', 
+                    link: 'minigame10.html',
+                    description: 'Aslı\'nın kitaplığında zehirler ve toksikoloji hakkında birçok kitap bulundu. Kitapların bazı sayfaları işaretlenmiş durumda. "Tespit Edilemeyen Zehirler" konulu kitaptaki notlar özellikle dikkat çekiyor.'
+                },
+                { 
+                    name: 'Çekmece', 
+                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
+                    link: 'minigame11.html',
+                    description: 'Aslı\'nın çekmecesinde tıp fakültesinden arkadaşlarıyla çekilmiş fotoğraflar ve bazı ilaç prospektüsleri bulundu. Ayrıca laboratuvar erişimi için bir kart ve şifreli notlar dikkat çekiyor.'
+                }
+            ],
+            'sercan': [
+                { 
+                    name: 'Spor Çantası', 
+                    image: 'https://placehold.co/150x150/333/white?text=Çanta', 
+                    link: 'minigame12.html',
+                    description: 'Sercan\'ın spor çantasında normalde spor salonunda kullanılmayacak bazı eşyalar tespit edildi. Çantanın gizli bölmesinde borç senetleri ve bir tehdit mektubu bulundu. Ayrıca ekmek bıçağına benzeyen bir bıçak da dikkat çekiyor.'
+                }
+            ],
+            'fikret': [
+                { 
+                    name: 'Gizli Bölme', 
+                    image: 'https://placehold.co/150x150/333/white?text=Gizli', 
+                    link: 'minigame13.html',
+                    description: 'Fikret\'in odasında duvarın arkasında bir gizli bölme keşfedildi. Bölmede aile üyelerine ait özel bilgiler, şantaj belgeleri ve büyük miktarda nakit para bulunuyor. Belgelerin bazıları üzerinde kan lekeleri var.'
+                }
+            ]
+        };
+    </script>
+    
+    <!-- Service Worker Kaydı İçin Script -->
+    <script>
+    // service-worker.js dosyasını oluşturmak için kod
+    if ('serviceWorker' in navigator) {
+        // Sayfa yüklendiğinde sw.js dosyasını oluştur
+        window.addEventListener('load', function() {
+            const swContent = `
+            // Service Worker
+            const CACHE_NAME = 'villa13-cache-v1';
+            const urlsToCache = [
+                '/',
+                '/villa13.html',
+                '/villa_1kat.jpg',
+                '/villa_2kat.jpg'
+            ];
+            
+            self.addEventListener('install', function(event) {
+                event.waitUntil(
+                    caches.open(CACHE_NAME)
+                        .then(function(cache) {
+                            console.log('Cache açıldı');
+                            return cache.addAll(urlsToCache);
+                        })
+                );
+            });
+            
+            self.addEventListener('fetch', function(event) {
+                event.respondWith(
+                    caches.match(event.request)
+                        .then(function(response) {
+                            if (response) {
+                                return response;
+                            }
+                            return fetch(event.request);
+                        }
+                    )
+                );
+            });
+            
+            self.addEventListener('push', function(event) {
+                const title = 'Villa13';
+                const options = {
+                    body: event.data.text(),
+                    icon: 'https://placehold.co/192x192/333/white?text=V13',
+                    vibrate: [200, 100, 200]
+                };
+                
+                event.waitUntil(
+                    self.registration.showNotification(title, options)
+                );
+            });
+            
+            self.addEventListener('notificationclick', function(event) {
+                event.notification.close();
+                event.waitUntil(
+                    clients.openWindow('https://moneuphorian.github.io/villa13.html')
+                );
+            });
+            `;
+            
+            // Blob oluştur
+            const blob = new Blob([swContent], {type: 'application/javascript'});
+            
+            // Blob URL oluştur
+            const blobURL = URL.createObjectURL(blob);
+            
+            // Service Worker'ı kaydet
+            navigator.serviceWorker.register(blobURL)
+                .then(function(registration) {
+                    console.log('ServiceWorker kaydı başarılı:', registration.scope);
+                    
+                    // Bildirim izni iste
+                    Notification.requestPermission().then(function(permission) {
+                        if (permission === 'granted') {
+                            console.log('Bildirim izni verildi');
+                        }
+                    });
+                })
+                .catch(function(error) {
+                    console.log('ServiceWorker kaydı başarısız:', error);
+                });
+        });
+    }
     </script>
 </body>
 </html> 
