@@ -11,6 +11,7 @@
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Mobil dokunmalarda vurgu efektini kaldır */
         }
         
         body {
@@ -88,16 +89,18 @@
         /* Hotspot Alanları (Odalar) */
         .room {
             position: absolute;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px dashed rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 77, 77, 0.3); /* Daha belirgin renk */
+            border: 2px solid rgba(255, 77, 77, 0.5); /* Daha belirgin kenar çizgisi */
             cursor: pointer;
             transition: all 0.3s ease;
             border-radius: 4px;
+            z-index: 10; /* Odaların resimlerin üzerinde olmasını sağla */
+            touch-action: manipulation; /* Dokunmatik ekranlar için optimize et */
         }
         
         .room:hover {
-            background-color: rgba(255, 77, 77, 0.3);
-            border-color: rgba(255, 77, 77, 0.5);
+            background-color: rgba(255, 77, 77, 0.5);
+            border-color: rgba(255, 77, 77, 0.8);
         }
         
         /* Arama Modal */
@@ -250,10 +253,11 @@
         /* Zoom Container */
         .zoom-container {
             position: relative;
-            overflow: hidden;
+            overflow: visible; /* Taşacak içeriğin görünür olması için */
             width: 100%;
             height: auto;
             transform-origin: 0 0;
+            min-height: 200px; /* Minimum yükseklik belirle */
         }
     </style>
 </head>
@@ -322,17 +326,17 @@
         const searchTimer = document.getElementById('searchTimer');
         const cluesContainer = document.getElementById('cluesContainer');
         
-        // Zoom değişkenleri
-        const zoomInBtn = document.getElementById('zoomIn');
-        const zoomOutBtn = document.getElementById('zoomOut');
-        const zoomResetBtn = document.getElementById('zoomReset');
-        const floorView = document.querySelector('.floor-view');
-        const zoomContainer = document.getElementById('zoomContainer');
-        let currentScale = 1;
-        let currentTranslateX = 0;
-        let currentTranslateY = 0;
+        // Zoom ve drag değişkenleri
+        let scale = 1;
         let isDragging = false;
-        let startX, startY, initialTranslateX, initialTranslateY;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let initialPinchDistance = 0;
+        let isTouching = false;
+        let touchTimer = null;
+        let lastTapTime = 0;
         
         // Geçerli kat
         let currentFloor = 1;
@@ -570,82 +574,191 @@
         
         // Zoom işlevleri
         function updateTransform() {
-            zoomContainer.style.transform = `scale(${currentScale}) translate(${currentTranslateX}px, ${currentTranslateY}px)`;
+            floors[currentFloor].style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
         }
         
         function zoomIn() {
-            if (currentScale < 3) {
-                currentScale += 0.2;
+            if (scale < 3) {
+                scale += 0.1;
                 updateTransform();
             }
         }
         
         function zoomOut() {
-            if (currentScale > 0.5) {
-                currentScale -= 0.2;
+            if (scale > 0.5) {
+                scale -= 0.1;
                 updateTransform();
             }
         }
         
         function resetZoom() {
-            currentScale = 1;
-            currentTranslateX = 0;
-            currentTranslateY = 0;
+            scale = 1;
+            currentX = 0;
+            currentY = 0;
             updateTransform();
         }
         
         // Sürükleme (pan) işlevleri
         function startDrag(e) {
-            if (currentScale > 1) {
-                isDragging = true;
-                
-                if (e.type === "mousedown") {
-                    startX = e.clientX;
-                    startY = e.clientY;
-                } else if (e.type === "touchstart") {
+            if (e.type === 'touchstart') {
+                // Pinch hareketi ise işleme
+                if (e.touches.length === 2) {
                     e.preventDefault();
-                    startX = e.touches[0].clientX;
-                    startY = e.touches[0].clientY;
+                    initialPinchDistance = getDistance(
+                        e.touches[0].clientX, e.touches[0].clientY,
+                        e.touches[1].clientX, e.touches[1].clientY
+                    );
+                    return;
                 }
                 
-                initialTranslateX = currentTranslateX;
-                initialTranslateY = currentTranslateY;
-                
-                floorView.style.cursor = 'grabbing';
+                // Tek parmak dokunma
+                isTouching = true;
+                startX = e.touches[0].clientX - currentX;
+                startY = e.touches[0].clientY - currentY;
+            } else {
+                // Fare ile sürükleme
+                isDragging = true;
+                startX = e.clientX - currentX;
+                startY = e.clientY - currentY;
             }
+            
+            floors[currentFloor].style.cursor = 'grabbing';
         }
         
         function drag(e) {
-            if (!isDragging) return;
-            
-            let clientX, clientY;
-            
-            if (e.type === "mousemove") {
+            if (e.type === 'touchmove') {
+                // Pinch hareketi algılandıysa
+                if (e.touches.length === 2) {
+                    return; // handlePinch fonksiyonu bununla ilgilenecek
+                }
+                
+                // Sürükleme için sadece tek parmak hareketi
+                if (isTouching) {
+                    e.preventDefault();
+                    currentX = e.touches[0].clientX - startX;
+                    currentY = e.touches[0].clientY - startY;
+                    updateTransform();
+                }
+            } else if (isDragging) {
+                // Fare ile sürükleme
                 e.preventDefault();
-                clientX = e.clientX;
-                clientY = e.clientY;
-            } else if (e.type === "touchmove") {
-                e.preventDefault();
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
+                currentX = e.clientX - startX;
+                currentY = e.clientY - startY;
+                updateTransform();
+            }
+        }
+        
+        function endDrag(e) {
+            isDragging = false;
+            isTouching = false;
+            floors[currentFloor].style.cursor = 'grab';
+        }
+        
+        // İki nokta arasındaki mesafeyi hesaplama
+        function getDistance(x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+        
+        // Pinch-to-zoom işleme fonksiyonu
+        function handlePinch(e) {
+            if (e.touches.length !== 2) return;
+            
+            e.preventDefault();
+            
+            const currentDistance = getDistance(
+                e.touches[0].clientX, e.touches[0].clientY,
+                e.touches[1].clientX, e.touches[1].clientY
+            );
+            
+            if (initialPinchDistance === 0) {
+                initialPinchDistance = currentDistance;
+                return;
             }
             
-            const dx = (clientX - startX) / currentScale;
-            const dy = (clientY - startY) / currentScale;
+            const pinchRatio = currentDistance / initialPinchDistance;
+            let newScale = scale * pinchRatio;
             
-            currentTranslateX = initialTranslateX + dx;
-            currentTranslateY = initialTranslateY + dy;
+            // Scale limitleri
+            newScale = Math.max(0.5, Math.min(3, newScale));
+            
+            scale = newScale;
+            initialPinchDistance = currentDistance;
             
             updateTransform();
         }
         
-        function endDrag() {
-            isDragging = false;
-            floorView.style.cursor = 'default';
+        // Pinch-to-zoom bitirme fonksiyonu
+        function handlePinchEnd() {
+            initialPinchDistance = 0;
         }
         
-        // Pinch-to-zoom
-        zoomContainer.addEventListener('touchstart', (e) => {
+        // Oda tıklama olayları
+        rooms.forEach(room => {
+            room.addEventListener('click', function(e) {
+                const now = Date.now();
+                if (now - lastTapTime < 300) return; // Çift tıklama engelleme
+                lastTapTime = now;
+                
+                if (!isDragging && !isTouching) {
+                    currentRoomElement.textContent = this.title;
+                    searchTimer.style.display = 'none';
+                    searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
+                    createClues(this.dataset.room);
+                    cluesContainer.style.display = 'flex';
+                    searchModal.style.display = 'flex';
+                }
+            });
+            
+            // Mobil için dokunma olayları
+            room.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) return; // Çoklu dokunma engelleme
+                
+                if (touchTimer) clearTimeout(touchTimer);
+                
+                touchTimer = setTimeout(() => {
+                    if (e.touches.length === 1) {
+                        currentRoomElement.textContent = this.title;
+                        searchTimer.style.display = 'none';
+                        searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
+                        createClues(this.dataset.room);
+                        cluesContainer.style.display = 'flex';
+                        searchModal.style.display = 'flex';
+                        e.preventDefault();
+                    }
+                }, 200);
+            }, { passive: false });
+            
+            room.addEventListener('touchend', function() {
+                if (touchTimer) clearTimeout(touchTimer);
+            });
+        });
+        
+        // Zoom butonları
+        document.getElementById('zoomIn').addEventListener('click', zoomIn);
+        document.getElementById('zoomOut').addEventListener('click', zoomOut);
+        document.getElementById('zoomReset').addEventListener('click', resetZoom);
+        
+        // Mobil cihazlar için butonları daha iyi algılama
+        document.getElementById('zoomIn').addEventListener('touchend', function(e) {
+            e.preventDefault();
+            zoomIn();
+        });
+        document.getElementById('zoomOut').addEventListener('touchend', function(e) {
+            e.preventDefault();
+            zoomOut();
+        });
+        document.getElementById('zoomReset').addEventListener('touchend', function(e) {
+            e.preventDefault();
+            resetZoom();
+        });
+        
+        // Mobil dokunma olayları
+        document.getElementById('zoomContainer').addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('touchend', endDrag);
+        
+        // Pinch-to-zoom event listenerleri
+        document.getElementById('zoomContainer').addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
                 e.preventDefault();
                 initialPinchDistance = 0;
@@ -655,51 +768,31 @@
         document.addEventListener('touchmove', handlePinch, { passive: false });
         document.addEventListener('touchend', handlePinchEnd);
         
-        // Pinch-to-zoom fonksiyonu (mobil)
-        let initialPinchDistance = 0;
-        let initialScale = 1;
-        
-        function handlePinch(e) {
-            if (!e.touches || e.touches.length !== 2) return;
-            e.preventDefault();
-            
-            const touch1 = e.touches[0];
-            const touch2 = e.touches[1];
-            
-            const distance = Math.hypot(
-                touch1.clientX - touch2.clientX,
-                touch1.clientY - touch2.clientY
-            );
-            
-            if (initialPinchDistance === 0) {
-                initialPinchDistance = distance;
-                initialScale = currentScale;
-                return;
-            }
-            
-            const scaleFactor = distance / initialPinchDistance;
-            let newScale = initialScale * scaleFactor;
-            
-            // Ölçeği sınırla
-            newScale = Math.min(Math.max(0.5, newScale), 3);
-            
-            // Ölçek değişimini yumuşat
-            currentScale = newScale;
-            
-            updateTransform();
-        }
-        
-        function handlePinchEnd() {
-            initialPinchDistance = 0;
-        }
-        
         // Modal dışına tıklayınca kapatma
-        searchModal.addEventListener('click', (e) => {
+        window.addEventListener('click', function(e) {
             if (e.target === searchModal) {
                 searchModal.style.display = 'none';
                 if (searchInterval) clearInterval(searchInterval);
             }
         });
+        
+        // Mobil için modal dokunma
+        searchModal.addEventListener('touchstart', function(e) {
+            if (e.target === searchModal) {
+                searchModal.style.display = 'none';
+            }
+        }, { passive: true });
+        
+        // Close butonuna tıklama
+        document.querySelector('.close').addEventListener('click', function() {
+            searchModal.style.display = 'none';
+        });
+        
+        // Close butonu için touch olayı
+        document.querySelector('.close').addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            searchModal.style.display = 'none';
+        }, { passive: false });
         
         // Kat değiştirme butonları
         floorButtons.forEach(btn => {
@@ -708,42 +801,6 @@
                 switchFloor(floor);
             });
         });
-        
-        // Oda tıklama olayları
-        rooms.forEach(room => {
-            room.addEventListener('click', () => {
-                const roomId = room.dataset.room;
-                
-                // Oda zaten tamamlandıysa ipuçlarını göster
-                if (gameState.completedSearches.includes(roomId)) {
-                    currentRoomElement.textContent = room.title;
-                    searchTimer.style.display = 'none';
-                    searchTimer.parentElement.querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
-                    createClues(roomId);
-                    cluesContainer.style.display = 'flex';
-                    searchModal.style.display = 'flex';
-                } else {
-                    // Oda henüz tamamlanmadıysa aramayı başlat
-                    startSearch(roomId);
-                }
-            });
-        });
-        
-        // Zoom butonları
-        zoomInBtn.addEventListener('click', zoomIn);
-        zoomOutBtn.addEventListener('click', zoomOut);
-        zoomResetBtn.addEventListener('click', resetZoom);
-        
-        // Sürükleme olayları
-        zoomContainer.addEventListener('mousedown', startDrag);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', endDrag);
-        document.addEventListener('mouseleave', endDrag);
-        
-        // Mobil dokunma olayları
-        zoomContainer.addEventListener('touchstart', startDrag, { passive: false });
-        document.addEventListener('touchmove', drag, { passive: false });
-        document.addEventListener('touchend', endDrag);
         
         // Varsayılan olarak 1. katı göster
         switchFloor(1);
