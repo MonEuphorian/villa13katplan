@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Villa13 - Cinayet Keşif Oyunu</title>
     <style>
         /* Genel Stil */
@@ -535,6 +537,20 @@
     </div>
     
     <script>
+        // Mobil dokunma olaylarını geliştirmek için yardımcı fonksiyon
+        function fixTouchEvents() {
+            // iOS'ta 300ms tıklama gecikmesini önle
+            document.addEventListener('touchstart', function(){}, {passive: false});
+            
+            // Çift dokunma yakınlaştırma sorunlarını önle
+            document.addEventListener('touchmove', function(e) {
+                if (e.touches.length > 1) {
+                    // Pinch-to-zoom için bu olayı engelleme
+                    return;
+                }
+            }, {passive: false});
+        }
+        
         // Service Worker Kaydı
         if ('serviceWorker' in navigator && 'PushManager' in window) {
             window.addEventListener('load', function() {
@@ -616,6 +632,9 @@
         
         // Sayfa yüklendiğinde oyuncu kontrolü
         window.addEventListener('load', function() {
+            // Mobil dokunma olaylarını düzelt
+            fixTouchEvents();
+            
             const savedPlayer = localStorage.getItem(PLAYER_KEY);
             const savedGameStart = localStorage.getItem(GAME_START_KEY);
             
@@ -838,6 +857,7 @@
             
             // Oda adını ve süreyi güncelle
             currentRoomElement.textContent = roomName;
+            currentRoomElement.dataset.roomid = roomId; // Oda ID'sini element'e ekle
             
             // Saniye formatını dakika:saniye formatına çevir
             const minutes = Math.floor(searchTime / 60);
@@ -855,23 +875,44 @@
             // Modalı göster
             searchModal.style.display = 'flex';
             
-            // Aramayı başlat butonuna tıklama olayı ekle
-            document.getElementById('startSearchBtn').onclick = function() {
+            // Aramayı başlat butonuna tıklama olayını temizle ve yeniden ekle
+            const startButton = document.getElementById('startSearchBtn');
+            
+            // Tüm olay dinleyicilerini kaldır ve yeniden ekle
+            const newButton = startButton.cloneNode(true);
+            startButton.parentNode.replaceChild(newButton, startButton);
+            
+            // Yeni tıklama olayını ekle
+            newButton.addEventListener('click', function(e) {
+                e.preventDefault();
                 startSearch(roomId);
-            };
+            });
+            
+            // Mobil için touch olayı ekle
+            newButton.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                startSearch(roomId);
+            }, { passive: false });
         }
         
         // Arama fonksiyonu (Başlatma)
         function startSearch(roomId, remainingTime = null) {
+            console.log("Oda araması başlatılıyor: " + roomId);
+            
             // Arama onay ekranını gizle, ilerleme ekranını göster
             document.getElementById('searchConfirm').style.display = 'none';
             document.getElementById('searchProgress').style.display = 'block';
             
             // Önceki timer'ı temizle
-            if (searchInterval) clearInterval(searchInterval);
+            if (searchInterval) {
+                clearInterval(searchInterval);
+                searchInterval = null;
+            }
             
             // Eğer daha önce aramaya başlanmışsa kalan süreyi kullan
             let timeLeft = remainingTime || roomSearchTimes[roomId];
+            console.log("Başlangıç süresi: " + timeLeft);
             
             // Eğer bu ilk arama ise, arama başlangıç zamanını kaydet
             if (!remainingTime && !gameState.searchedRooms[roomId]) {
@@ -912,17 +953,19 @@
                 }
             }
             
-            // Timer'ı ayarla
-            const searchTimer = document.getElementById('searchTimer');
+            // İlk görüntüleme
             updateSearchTimerDisplay(timeLeft);
-            searchTimer.classList.add('pulse');
+            document.getElementById('searchTimer').classList.add('pulse');
             
-            searchInterval = setInterval(() => {
+            // Timer başlat
+            searchInterval = setInterval(function() {
                 timeLeft--;
+                console.log("Kalan süre: " + timeLeft);
                 updateSearchTimerDisplay(timeLeft);
                 
                 if (timeLeft <= 0) {
                     clearInterval(searchInterval);
+                    searchInterval = null;
                     searchCompleted(roomId);
                 }
             }, 1000);
@@ -930,6 +973,7 @@
         
         // Timer ekranını dakika:saniye formatında güncelle
         function updateSearchTimerDisplay(timeInSeconds) {
+            console.log("Timer güncelleniyor: " + timeInSeconds);
             const minutes = Math.floor(timeInSeconds / 60);
             const seconds = timeInSeconds % 60;
             const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
