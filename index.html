@@ -285,6 +285,7 @@
             height: 100%;
             object-fit: cover;
             transition: transform 0.3s ease;
+            display: block;
         }
         
         .clue:hover img {
@@ -1105,33 +1106,43 @@
         
         // İpuçlarını oluşturma fonksiyonu
         function createClues(roomId) {
-            // Önce mevcut ipuçlarını temizle
-            cluesContainer.innerHTML = '';
-            
-            // İlgili odanın ipuçlarını oluştur
-            const clues = roomClues[roomId] || [];
-            
-            clues.forEach(clue => {
-                const clueElement = document.createElement('div');
-                clueElement.className = 'clue';
-                clueElement.innerHTML = `
-                    <img src="${clue.image}" alt="${clue.name}">
-                    <div class="clue-name">${clue.name}</div>
-                `;
+            try {
+                console.log("İpuçları oluşturuluyor: " + roomId);
                 
-                // İpucu tıklandığında artık doğrudan oyuna yönlendirmek yerine bilgi modalini göster
-                clueElement.addEventListener('click', () => {
-                    showClueInfo(clue);
+                // Önce mevcut ipuçlarını temizle
+                cluesContainer.innerHTML = '';
+                
+                // İlgili odanın ipuçlarını oluştur
+                const clues = roomClues[roomId] || [];
+                
+                clues.forEach(clue => {
+                    const clueElement = document.createElement('div');
+                    clueElement.className = 'clue';
+                    
+                    // Görsel ve başlık içeriği
+                    clueElement.innerHTML = `
+                        <img src="${clue.image}" alt="${clue.name}" onerror="this.onerror=null; this.src='kanit_default.jpg';">
+                        <div class="clue-name">${clue.name}</div>
+                    `;
+                    
+                    // İpucu tıklandığında bilgi modalini göster
+                    clueElement.addEventListener('click', () => {
+                        showClueInfo(clue);
+                    });
+                    
+                    cluesContainer.appendChild(clueElement);
                 });
                 
-                cluesContainer.appendChild(clueElement);
-            });
-            
-            // Eğer ipucu yoksa bilgi ver
-            if (clues.length === 0) {
-                const noClue = document.createElement('p');
-                noClue.textContent = 'Bu odada ilgili bir ipucu bulunamadı.';
-                cluesContainer.appendChild(noClue);
+                // Eğer ipucu yoksa bilgi ver
+                if (clues.length === 0) {
+                    const noClue = document.createElement('p');
+                    noClue.textContent = 'Bu odada ilgili bir ipucu bulunamadı.';
+                    cluesContainer.appendChild(noClue);
+                }
+            } catch (err) {
+                console.error("createClues hatası:", err);
+                // Hata durumunda basit bir mesaj göster
+                cluesContainer.innerHTML = '<p>İpuçları yüklenirken bir sorun oluştu.</p>';
             }
         }
         
@@ -1414,13 +1425,13 @@
             'salon': [
                 { 
                     name: 'Kanepe', 
-                    image: 'https://placehold.co/150x150/333/white?text=Kanepe', 
+                    image: 'kanit_kanepe.jpg', 
                     link: 'minigame1.html',
                     description: 'Salondaki kanepenin yastıklarının altında bazı eşyalar bulundu. Kanepe üzerindeki kan izleri ve diğer lekelerin detaylı incelemesi gerekiyor. Kanepede bulunan uzun sarı saçlar kime ait olabilir?'
                 },
                 { 
                     name: 'Televizyon', 
-                    image: 'https://placehold.co/150x150/333/white?text=TV', 
+                    image: 'kanit_tv.jpg', 
                     link: 'minigame2.html',
                     description: 'Televizyonun üzerinde parmak izleri tespit edildi. Ayrıca televizyondaki güvenlik kamerası kayıtları cinayetin işlendiği gece hakkında önemli bilgiler içeriyor olabilir. Kayıtları incelemek için şifre gerekiyor.'
                 }
@@ -1428,13 +1439,13 @@
             'mutfak': [
                 { 
                     name: 'Buzdolabı', 
-                    image: 'https://placehold.co/150x150/333/white?text=Buzdolabı', 
+                    image: 'kanit_buzdolabi.jpg', 
                     link: 'minigame3.html',
                     description: 'Buzdolabında yarım kalmış bir şişe şarap ve iki kadeh bulundu. Şişenin üzerinde parmak izleri var. Buzdolabının içinde ayrıca şüpheli bir ilaç şişesi tespit edildi. İncelenmesi gerekiyor.'
                 },
                 { 
                     name: 'Bıçak Çekmecesi', 
-                    image: 'https://placehold.co/150x150/333/white?text=Bıçak', 
+                    image: 'kanit_bicak.jpg', 
                     link: 'minigame4.html',
                     description: 'Mutfak çekmecesindeki bıçak setinden bir adet ekmek bıçağı eksik. Diğer bıçakların üzerinde kan izleri kontrolü yapılmalı. Çekmecenin kulpunda birden fazla kişiye ait parmak izleri tespit edildi.'
                 }
@@ -1442,13 +1453,13 @@
             'calisma': [
                 { 
                     name: 'Kasa', 
-                    image: 'https://placehold.co/150x150/333/white?text=Kasa', 
+                    image: 'kanit_kasa.jpg', 
                     link: 'kasa.html',
                     description: 'Çalışma odasındaki kasa, Fikret Bey\'e ait. İçinde önemli belgeler ve değerli eşyalar olduğu biliniyor. Kasa şifresini bulmak için odadaki ipuçlarını incelemen gerekiyor. Kasanın üzerinde parmak izleri bulundu.'
                 },
                 { 
                     name: 'Bilgisayar', 
-                    image: 'https://placehold.co/150x150/333/white?text=PC', 
+                    image: 'kanit_pc.jpg', 
                     link: 'minigame5.html',
                     description: 'Bilgisayarda Fikret Bey\'in son dönemde yaptığı araştırmalar ve yazışmalar bulunuyor. E-postalarında şüpheli yazışmalar dikkat çekiyor. Bilgisayar şifreli, ancak masadaki notlar şifreyi çözmek için ipuçları içeriyor.'
                 }
@@ -1456,7 +1467,7 @@
             'yemek': [
                 { 
                     name: 'Çekmece', 
-                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
+                    image: 'kanit_cekmece_yemek.jpg', 
                     link: 'minigame6.html',
                     description: 'Yemek odasındaki çekmecede bir miras belgesi bulundu. Belge üzerinde yapılan değişiklikler dikkat çekici. Çekmecenin arka kısmında gizlenmiş bir not bulundu. Not, ailenin bir sırrını ortaya çıkarabilir.'
                 }
@@ -1464,13 +1475,13 @@
             'nalan': [
                 { 
                     name: 'Dolap', 
-                    image: 'https://placehold.co/150x150/333/white?text=Dolap', 
+                    image: 'kanit_dolap.jpg', 
                     link: 'minigame7.html',
                     description: 'Nalan\'ın dolabında yabancı bir erkek parfümü ve bazı şüpheli belgeler bulundu. Dolabın arka kısmında gizlenmiş bir günlük var. Günlükte önemli ipuçları olabilir.'
                 },
                 { 
                     name: 'Yatağın Altı', 
-                    image: 'https://placehold.co/150x150/333/white?text=Yatak', 
+                    image: 'kanit_yatak.jpg', 
                     link: 'minigame8.html',
                     description: 'Yatağın altında gizlenmiş bir çanta içinde yüklü miktarda para bulundu. Paranın kaynağı şüpheli. Ayrıca bir silah kutusu da tespit edildi, ancak içi boştu.'
                 }
@@ -1478,7 +1489,7 @@
             'elif': [
                 { 
                     name: 'Makyaj Masası', 
-                    image: 'https://placehold.co/150x150/333/white?text=Makyaj', 
+                    image: 'kanit_makyaj.jpg', 
                     link: 'minigame9.html',
                     description: 'Elif\'in makyaj masasında birkaç fotoğraf ve bir mektup bulundu. Fotoğraflarda ailede olmayan bir kişi görülüyor. Makyaj malzemelerinin arasında gizlenmiş bir USB bellek dikkat çekiyor.'
                 }
@@ -1486,13 +1497,13 @@
             'asli': [
                 { 
                     name: 'Kitaplık', 
-                    image: 'https://placehold.co/150x150/333/white?text=Kitaplık', 
+                    image: 'kanit_kitaplik.jpg', 
                     link: 'minigame10.html',
                     description: 'Aslı\'nın kitaplığında zehirler ve toksikoloji hakkında birçok kitap bulundu. Kitapların bazı sayfaları işaretlenmiş durumda. "Tespit Edilemeyen Zehirler" konulu kitaptaki notlar özellikle dikkat çekiyor.'
                 },
                 { 
                     name: 'Çekmece', 
-                    image: 'https://placehold.co/150x150/333/white?text=Çekmece', 
+                    image: 'kanit_cekmece_asli.jpg', 
                     link: 'minigame11.html',
                     description: 'Aslı\'nın çekmecesinde tıp fakültesinden arkadaşlarıyla çekilmiş fotoğraflar ve bazı ilaç prospektüsleri bulundu. Ayrıca laboratuvar erişimi için bir kart ve şifreli notlar dikkat çekiyor.'
                 }
@@ -1500,7 +1511,7 @@
             'sercan': [
                 { 
                     name: 'Spor Çantası', 
-                    image: 'https://placehold.co/150x150/333/white?text=Çanta', 
+                    image: 'kanit_canta.jpg', 
                     link: 'minigame12.html',
                     description: 'Sercan\'ın spor çantasında normalde spor salonunda kullanılmayacak bazı eşyalar tespit edildi. Çantanın gizli bölmesinde borç senetleri ve bir tehdit mektubu bulundu. Ayrıca ekmek bıçağına benzeyen bir bıçak da dikkat çekiyor.'
                 }
@@ -1508,7 +1519,7 @@
             'fikret': [
                 { 
                     name: 'Gizli Bölme', 
-                    image: 'https://placehold.co/150x150/333/white?text=Gizli', 
+                    image: 'kanit_gizli.jpg', 
                     link: 'minigame13.html',
                     description: 'Fikret\'in odasında duvarın arkasında bir gizli bölme keşfedildi. Bölmede aile üyelerine ait özel bilgiler, şantaj belgeleri ve büyük miktarda nakit para bulunuyor. Belgelerin bazıları üzerinde kan lekeleri var.'
                 }
@@ -1536,7 +1547,22 @@
                     '/',
                     '/villa13.html',
                     '/villa_1kat.jpg',
-                    '/villa_2kat.jpg'
+                    '/villa_2kat.jpg',
+                    '/kanit_default.jpg',
+                    '/kanit_kanepe.jpg',
+                    '/kanit_tv.jpg',
+                    '/kanit_buzdolabi.jpg',
+                    '/kanit_bicak.jpg',
+                    '/kanit_kasa.jpg',
+                    '/kanit_pc.jpg',
+                    '/kanit_cekmece_yemek.jpg',
+                    '/kanit_dolap.jpg',
+                    '/kanit_yatak.jpg',
+                    '/kanit_makyaj.jpg',
+                    '/kanit_kitaplik.jpg',
+                    '/kanit_cekmece_asli.jpg',
+                    '/kanit_canta.jpg',
+                    '/kanit_gizli.jpg'
                 ];
                 
                 self.addEventListener('install', function(event) {
