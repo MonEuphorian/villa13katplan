@@ -1322,6 +1322,13 @@
                 // İpuçlarını gösterme mesajını güncelle
                 document.getElementById('searchProgress').querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
                 
+                // Oda adını göstermeye devam et
+                const roomElement = document.querySelector(`.room[data-room="${roomId}"]`);
+                if (roomElement) {
+                    currentRoomElement.textContent = roomElement.title;
+                    currentRoomElement.dataset.roomid = roomId;
+                }
+                
                 // İpuçlarını oluştur
                 createClues(roomId);
                 
@@ -1335,7 +1342,7 @@
                 }
             } catch (err) {
                 console.error("searchCompleted hatası:", err);
-                alert("Arama tamamlanırken bir hata oluştu: " + err.message);
+                showCustomAlert("Arama tamamlanırken bir hata oluştu: " + err.message);
             }
         }
         
@@ -1350,6 +1357,19 @@
                 // İlgili odanın ipuçlarını oluştur
                 const clues = roomClues[roomId] || [];
                 
+                // Konsolda kanıt bilgilerini logla - debug için
+                console.log("Oda ID:", roomId);
+                console.log("Bu odaya ait kanıtlar:", clues);
+                
+                // Eğer kanıt yoksa
+                if (clues.length === 0) {
+                    const noClue = document.createElement('p');
+                    noClue.textContent = 'Bu odada ilgili bir ipucu bulunamadı.';
+                    cluesContainer.appendChild(noClue);
+                    return;
+                }
+                
+                // Kanıtları oluştur
                 clues.forEach(clue => {
                     const clueElement = document.createElement('div');
                     clueElement.className = 'clue';
@@ -1360,20 +1380,17 @@
                         <div class="clue-name">${clue.name}</div>
                     `;
                     
+                    // Oda ID'sini veri özelliği olarak ekle
+                    clueElement.dataset.roomId = roomId;
+                    
                     // İpucu tıklandığında bilgi modalini göster
                     clueElement.addEventListener('click', () => {
-                        showClueInfo(clue);
+                        showClueInfo(clue, roomId);
                     });
                     
                     cluesContainer.appendChild(clueElement);
                 });
                 
-                // Eğer ipucu yoksa bilgi ver
-                if (clues.length === 0) {
-                    const noClue = document.createElement('p');
-                    noClue.textContent = 'Bu odada ilgili bir ipucu bulunamadı.';
-                    cluesContainer.appendChild(noClue);
-                }
             } catch (err) {
                 console.error("createClues hatası:", err);
                 // Hata durumunda basit bir mesaj göster
@@ -1382,31 +1399,41 @@
         }
         
         // İpucu bilgi modalini gösterme fonksiyonu
-        function showClueInfo(clue) {
-            // Modal elementlerini al
-            const clueModal = document.getElementById('clueModal');
-            const clueTitle = document.getElementById('clueTitle');
-            const clueDescription = document.getElementById('clueDescription');
-            const examineBtn = document.getElementById('examineBtn');
-            
-            // Modal içeriğini doldur
-            clueTitle.textContent = clue.name;
-            clueDescription.textContent = clue.description;
-            
-            // İNCELE butonuna tıklama olayı ekle
-            examineBtn.onclick = function() {
-                window.location.href = clue.link;
-            };
-            
-            // Modali göster
-            clueModal.style.display = 'flex';
-            
-            // Modal dışına tıklayınca kapatma
-            clueModal.addEventListener('click', function(e) {
-                if (e.target === clueModal) {
-                    clueModal.style.display = 'none';
-                }
-            });
+        function showClueInfo(clue, roomId) {
+            try {
+                // Modal elementlerini al
+                const clueModal = document.getElementById('clueModal');
+                const clueTitle = document.getElementById('clueTitle');
+                const clueDescription = document.getElementById('clueDescription');
+                const examineBtn = document.getElementById('examineBtn');
+                
+                // Hangi odanın ipucu olduğunu belirt
+                const roomElement = document.querySelector(`.room[data-room="${roomId}"]`);
+                const roomName = roomElement ? roomElement.title : roomId;
+                
+                // Modal içeriğini doldur
+                clueTitle.textContent = clue.name;
+                clueTitle.dataset.roomId = roomId; // Hangi odanın ipucu olduğunu kaydet
+                clueDescription.textContent = clue.description;
+                
+                // İNCELE butonuna tıklama olayı ekle
+                examineBtn.onclick = function() {
+                    window.location.href = clue.link;
+                };
+                
+                // Modali göster
+                clueModal.style.display = 'flex';
+                
+                // Modal dışına tıklayınca kapatma
+                clueModal.addEventListener('click', function(e) {
+                    if (e.target === clueModal) {
+                        clueModal.style.display = 'none';
+                    }
+                });
+            } catch (err) {
+                console.error("showClueInfo hatası:", err);
+                showCustomAlert("İpucu bilgileri gösterilirken bir hata oluştu.");
+            }
         }
         
         // Zoom işlevleri
@@ -1565,6 +1592,7 @@
                 // Eğer oda tamamlanmışsa ipuçlarını göster
                 if (gameState.completedSearches.includes(roomId)) {
                     currentRoomElement.textContent = this.title;
+                    currentRoomElement.dataset.roomid = roomId; // Oda ID'sini kaydet
                     document.getElementById('searchConfirm').style.display = 'none';
                     document.getElementById('searchProgress').style.display = 'none';
                     document.getElementById('searchProgress').querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
@@ -1609,6 +1637,7 @@
                 // Eğer oda tamamlanmışsa ipuçlarını göster
                 if (gameState.completedSearches.includes(roomId)) {
                     currentRoomElement.textContent = this.title;
+                    currentRoomElement.dataset.roomid = roomId; // Oda ID'sini kaydet
                     document.getElementById('searchConfirm').style.display = 'none';
                     document.getElementById('searchProgress').style.display = 'none';
                     document.getElementById('searchProgress').querySelector('.search-text').textContent = 'Arama tamamlandı! Bulunan ipuçları:';
@@ -1737,6 +1766,14 @@
                     description: 'Yemek odasındaki çekmecede bir miras belgesi bulundu. Belge üzerinde yapılan değişiklikler dikkat çekici. Çekmecenin arka kısmında gizlenmiş bir not bulundu. Not, ailenin bir sırrını ortaya çıkarabilir.'
                 }
             ],
+            'hamdi': [
+                { 
+                    name: 'Çekmece', 
+                    image: 'kanit_cekmece_yemek.jpg', 
+                    link: 'minigame6.html',
+                    description: 'Hamdi\'nin odasındaki çekmecede bir miras belgesi bulundu. Belge üzerinde yapılan değişiklikler dikkat çekici. Çekmecenin arka kısmında gizlenmiş bir not bulundu. Not, ailenin bir sırrını ortaya çıkarabilir.'
+                }
+            ],
             'nalan': [
                 { 
                     name: 'Dolap', 
@@ -1821,6 +1858,179 @@
                 console.error("updateRoomStates hatası:", err);
             }
         }
+
+        // Odanın adını değiştirdiğimizde room mapini güncelleme fonksiyonu
+        function updateRoomMappings() {
+            try {
+                // Tüm odaları seçin
+                const rooms = document.querySelectorAll('.room');
+                
+                // Her oda için kontrol et
+                rooms.forEach(room => {
+                    const roomId = room.dataset.room;
+                    const roomTitle = room.getAttribute('title') || '';
+                    
+                    // Oda başlığı değiştirilmiş mi kontrol et - Hamdi odası örneği
+                    if (roomId === 'yemek' && roomTitle.toLowerCase().includes('hamdi')) {
+                        console.log("Yemek odası için başlık değişimi tespit edildi, veri güncelleniyor...");
+                        room.dataset.room = 'hamdi';
+                        
+                        // roomClues nesnesindeki ipuçlarının doğru gösterildiğinden emin olalım
+                        updateRoomEvidenceDisplay('hamdi');
+                    }
+                });
+                
+                console.log("Oda eşlemeleri güncellendi.");
+            } catch (err) {
+                console.error("Oda eşleme hatası:", err);
+            }
+        }
+
+        // Bir odadaki kanıtları doğru şekilde görüntüleme fonksiyonu
+        function updateRoomEvidenceDisplay(roomId) {
+            try {
+                // Aktif arama bu oda için mi kontrol et
+                const gameState = loadGameState();
+                if (gameState.activeSearch === roomId || gameState.completedSearches.includes(roomId)) {
+                    // Bu oda için kanıtlar varsa
+                    if (roomClues[roomId] && roomClues[roomId].length > 0) {
+                        // Kanıt listesini temizle ve yeniden oluştur
+                        const evidenceList = document.getElementById('evidenceList');
+                        if (evidenceList) {
+                            evidenceList.innerHTML = '';
+                            
+                            roomClues[roomId].forEach(clue => {
+                                const clueItem = document.createElement('div');
+                                clueItem.className = 'evidence-item';
+                                clueItem.innerHTML = `
+                                    <img src="${clue.image}" alt="${clue.name}">
+                                    <h3>${clue.name}</h3>
+                                    <p>${clue.description}</p>
+                                    <a href="${clue.link}" class="btn">İncele</a>
+                                `;
+                                evidenceList.appendChild(clueItem);
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Kanıt gösterme hatası:", err);
+            }
+        }
+
+        // Yerel depo verilerini temizleme ve oda kimliklerini düzeltme fonksiyonu
+        function fixRoomIdMismatch() {
+            try {
+                // Yemek odasını kontrol et ve gerekirse güncelle
+                const yemekOdasi = document.querySelector('.room[data-room="yemek"]');
+                // Hamdi odası var mı kontrol et
+                const hamdiOdasi = document.querySelector('.room[data-room="hamdi"]');
+                
+                // Eğer yemek odası Hamdi odası olarak değiştirildiyse ve HTML'de yeni kimlik yok ise
+                if (yemekOdasi && yemekOdasi.title.toLowerCase().includes('hamdi') && !hamdiOdasi) {
+                    console.log("Yemek odası Hamdi'nin odası olarak değiştirilmiş, düzeltiliyor...");
+                    yemekOdasi.dataset.room = "hamdi"; // HTML'de data-room özelliğini güncelle
+                    
+                    // Oyun durumunu güncelle
+                    const gameState = loadGameState();
+                    
+                    // Tamamlanmış aramalar listesini güncelle
+                    if (gameState.completedSearches.includes('yemek')) {
+                        // Yemek odasını kaldır
+                        gameState.completedSearches = gameState.completedSearches.filter(id => id !== 'yemek');
+                        // Hamdi odasını ekle (eğer zaten yoksa)
+                        if (!gameState.completedSearches.includes('hamdi')) {
+                            gameState.completedSearches.push('hamdi');
+                        }
+                    }
+                    
+                    // Arama kayıtlarını güncelle
+                    if (gameState.searchedRooms.yemek) {
+                        // Hamdi odası için arama kaydı oluştur
+                        gameState.searchedRooms.hamdi = gameState.searchedRooms.yemek;
+                        // Yemek odası kaydını sil
+                        delete gameState.searchedRooms.yemek;
+                    }
+                    
+                    // Aktif arama güncellemesi
+                    if (gameState.activeSearch === 'yemek') {
+                        gameState.activeSearch = 'hamdi';
+                    }
+                    
+                    // Değişiklikleri kaydet
+                    saveGameState(gameState);
+                    console.log("Oda kimlik düzeltmesi tamamlandı.");
+                }
+            } catch (err) {
+                console.error("Oda ID düzeltme hatası:", err);
+            }
+        }
+
+        // Sayfa yüklendiğinde oda maplemesini kontrol et
+        window.addEventListener('load', function() {
+            // Mobil dokunma olaylarını düzelt
+            fixTouchEvents();
+            
+            // Oda ID sorunlarını düzelt
+            fixRoomIdMismatch();
+            
+            // Oda eşlemelerini kontrol et
+            updateRoomMappings();
+            
+            const savedPlayer = localStorage.getItem(PLAYER_KEY);
+            const savedGameStart = localStorage.getItem(GAME_START_KEY);
+            
+            // Eğer daha önce oyuna başlamışsa
+            if (savedPlayer && savedGameStart) {
+                document.getElementById('playerName').value = savedPlayer;
+                document.getElementById('playerNameDisplay').textContent = savedPlayer;
+                gameStartTime = parseInt(savedGameStart);
+                
+                // Otomatik olarak oyunu başlat
+                document.getElementById('splashScreen').style.display = 'none';
+                document.getElementById('gameContainer').style.display = 'block';
+                
+                // Ekranı uyanık tutmayı dene (güvenli)
+                try {
+                    requestWakeLock();
+                } catch (err) {
+                    console.log("WakeLock hatası (önemsiz):", err);
+                }
+                
+                // Oyun sayacını başlat
+                startGameTimer();
+                
+                // Oyun durumunu yükle
+                loadGameState();
+                
+                // Odaların durumlarını güncelle
+                updateRoomStates();
+                
+                // Kesintiye uğramış aramaları kontrol et
+                checkPendingSearches();
+            }
+            
+            // Sayfa görünürlük değişikliğini izle (sekme/uygulama değiştirme, vb.)
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    // Ekranı tekrar kilitle (güvenli)
+                    try {
+                        requestWakeLock();
+                    } catch (err) {
+                        console.log("WakeLock hatası (önemsiz):", err);
+                    }
+                    
+                    // Aramaları kontrol et
+                    checkPendingSearches();
+                    
+                    // Odaların durumlarını güncelle
+                    updateRoomStates();
+                    
+                    // Oyun süresini güncelle
+                    updateGameTime();
+                }
+            });
+        });
     </script>
     
     <!-- Service Worker Kaydı İçin Script -->
