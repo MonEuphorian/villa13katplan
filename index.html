@@ -453,6 +453,55 @@
             cursor: not-allowed !important;
             pointer-events: all !important;
         }
+
+        .custom-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .alert-content {
+            background-color: #333;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 80%;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 77, 77, 0.4);
+        }
+
+        .alert-content h3 {
+            margin-top: 0;
+            color: #ff4d4d;
+            margin-bottom: 15px;
+        }
+
+        .alert-content p {
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .alert-button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .alert-button:hover {
+            background-color: #ff3333;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -955,6 +1004,11 @@
             try {
                 console.log("Arama hazırlanıyor: " + roomId);
                 const roomElement = document.querySelector(`.room[data-room="${roomId}"]`);
+                if (!roomElement) {
+                    console.error("Oda elementi bulunamadı:", roomId);
+                    return;
+                }
+                
                 const roomName = roomElement.title;
                 const searchTime = roomSearchTimes[roomId] || 30;
                 
@@ -976,8 +1030,8 @@
                     const activeRoomElement = document.querySelector(`.room[data-room="${gameState.activeSearch}"]`);
                     const activeRoomName = activeRoomElement ? activeRoomElement.title : gameState.activeSearch;
                     
-                    alert(`Şu anda "${activeRoomName}" odasında arama devam ediyor. Aynı anda sadece bir odada arama yapabilirsiniz.`);
-                    searchModal.style.display = 'none';
+                    // Standart uyarı yerine özelleştirilmiş uyarı kullan
+                    showCustomAlert(`Şu anda "${activeRoomName}" odasında arama devam ediyor. Aynı anda sadece bir odada arama yapabilirsiniz.`);
                     return;
                 }
                 
@@ -1060,8 +1114,50 @@
                 }, { passive: false });
             } catch (err) {
                 console.error("prepareSearch hatası:", err);
-                alert("Arama hazırlanırken bir hata oluştu: " + err.message);
+                showCustomAlert("Arama hazırlanırken bir hata oluştu: " + err.message);
             }
+        }
+        
+        // Özelleştirilmiş uyarı gösterme fonksiyonu
+        function showCustomAlert(message) {
+            // Mevcut alertleri temizle
+            const existingAlerts = document.querySelectorAll('.custom-alert');
+            existingAlerts.forEach(alert => {
+                document.body.removeChild(alert);
+            });
+
+            // Modal dışında alert göster
+            searchModal.style.display = 'none';
+
+            // Uyarı elementi oluştur
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'custom-alert';
+            alertDiv.innerHTML = `
+                <div class="alert-content">
+                    <h3>Bu sayfanın mesajı</h3>
+                    <p>${message}</p>
+                    <button id="alertOkButton" class="alert-button">Tamam</button>
+                </div>
+            `;
+
+            // Body'e ekle
+            document.body.appendChild(alertDiv);
+
+            // Tamam butonuna tıklama olayı ekle
+            document.getElementById('alertOkButton').addEventListener('click', function() {
+                document.body.removeChild(alertDiv);
+                // Oda durumlarını güncelle
+                updateRoomStates();
+            });
+
+            // 5 saniye sonra otomatik kapat
+            setTimeout(() => {
+                if (document.body.contains(alertDiv)) {
+                    document.body.removeChild(alertDiv);
+                    // Oda durumlarını güncelle
+                    updateRoomStates();
+                }
+            }, 5000);
         }
         
         // Arama fonksiyonu (Başlatma)
@@ -1464,20 +1560,9 @@
                 // Eğer sürükleme yapıldıysa tıklamayı engelle
                 if (isDragging) return;
                 
-                // Eğer oda devre dışı bırakılmışsa tıklamayı engelle
-                if (this.classList.contains('disabled-room')) {
-                    // Eğer aktif bir arama varsa uyarı ver
-                    if (gameState.activeSearch) {
-                        const activeRoomElement = document.querySelector(`.room[data-room="${gameState.activeSearch}"]`);
-                        const activeRoomName = activeRoomElement ? activeRoomElement.title : gameState.activeSearch;
-                        alert(`Şu anda "${activeRoomName}" odasında arama devam ediyor. Aynı anda sadece bir odada arama yapabilirsiniz.`);
-                    }
-                    return;
-                }
-                
                 const roomId = this.dataset.room;
                 
-                // Oda zaten tamamlandıysa ipuçlarını göster
+                // Eğer oda tamamlanmışsa ipuçlarını göster
                 if (gameState.completedSearches.includes(roomId)) {
                     currentRoomElement.textContent = this.title;
                     document.getElementById('searchConfirm').style.display = 'none';
@@ -1486,10 +1571,25 @@
                     createClues(roomId);
                     cluesContainer.style.display = 'flex';
                     searchModal.style.display = 'flex';
-                } else {
-                    // Oda henüz tamamlanmadıysa arama hazırlığını başlat
-                    prepareSearch(roomId);
+                    return;
                 }
+                
+                // Eğer bu oda aktif aramaysa, durumu göster
+                if (gameState.activeSearch === roomId) {
+                    prepareSearch(roomId);
+                    return;
+                }
+                
+                // Eğer oda devre dışı bırakılmışsa ve aktif arama varsa uyarı ver
+                if (this.classList.contains('disabled-room') && gameState.activeSearch) {
+                    const activeRoomElement = document.querySelector(`.room[data-room="${gameState.activeSearch}"]`);
+                    const activeRoomName = activeRoomElement ? activeRoomElement.title : gameState.activeSearch;
+                    showCustomAlert(`Şu anda "${activeRoomName}" odasında arama devam ediyor. Aynı anda sadece bir odada arama yapabilirsiniz.`);
+                    return;
+                }
+                
+                // Oda henüz tamamlanmadıysa ve devre dışı değilse arama hazırlığını başlat
+                prepareSearch(roomId);
             });
         });
         
@@ -1506,7 +1606,7 @@
                 
                 const roomId = this.dataset.room;
                 
-                // Oda zaten tamamlandıysa ipuçlarını göster
+                // Eğer oda tamamlanmışsa ipuçlarını göster
                 if (gameState.completedSearches.includes(roomId)) {
                     currentRoomElement.textContent = this.title;
                     document.getElementById('searchConfirm').style.display = 'none';
@@ -1515,10 +1615,25 @@
                     createClues(roomId);
                     cluesContainer.style.display = 'flex';
                     searchModal.style.display = 'flex';
-                } else {
-                    // Oda henüz tamamlanmadıysa arama hazırlığını başlat
-                    prepareSearch(roomId);
+                    return;
                 }
+                
+                // Eğer bu oda aktif aramaysa, durumu göster
+                if (gameState.activeSearch === roomId) {
+                    prepareSearch(roomId);
+                    return;
+                }
+                
+                // Eğer oda devre dışı bırakılmışsa ve aktif arama varsa uyarı ver
+                if (this.classList.contains('disabled-room') && gameState.activeSearch) {
+                    const activeRoomElement = document.querySelector(`.room[data-room="${gameState.activeSearch}"]`);
+                    const activeRoomName = activeRoomElement ? activeRoomElement.title : gameState.activeSearch;
+                    showCustomAlert(`Şu anda "${activeRoomName}" odasında arama devam ediyor. Aynı anda sadece bir odada arama yapabilirsiniz.`);
+                    return;
+                }
+                
+                // Oda henüz tamamlanmadıysa ve devre dışı değilse arama hazırlığını başlat
+                prepareSearch(roomId);
                 
                 e.preventDefault();
             }, { passive: false });
@@ -1679,11 +1794,14 @@
         // Odaların durumlarını güncelleme (aktif arama varsa diger odaları devre dışı bırak)
         function updateRoomStates() {
             try {
+                console.log("Oda durumları güncelleniyor... Aktif arama:", gameState.activeSearch);
                 // Tüm odaları normal haline getir
                 rooms.forEach(room => {
                     room.style.opacity = '1';
                     room.style.cursor = 'pointer';
                     room.classList.remove('disabled-room');
+                    // Tüm event listener'ları aktif et
+                    room.style.pointerEvents = 'auto';
                 });
 
                 // Aktif arama varsa diğer odaları devre dışı bırak
